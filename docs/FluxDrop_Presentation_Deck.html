@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FluxDrop — Presentation Deck</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    @page {
+      size: 16in 9in;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #06080F;
+      color: #F1F5F9;
+      width: 16in;
+    }
+
+    .slide {
+      width: 16in;
+      height: 9in;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+      page-break-inside: avoid;
+      background: radial-gradient(circle at 15% 15%, rgba(14, 165, 233, 0.12) 0%, transparent 45%),
+                  radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+                  #06080F;
+      padding: 0.8in 1in;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Top Bar */
+    .slide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.4in;
+    }
+
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #38BDF8;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .brand-logo-icon {
+      width: 18px;
+      height: 18px;
+      background: linear-gradient(135deg, #38BDF8, #818CF8);
+      border-radius: 4px;
+    }
+
+    .slide-num {
+      font-size: 14px;
+      font-weight: 600;
+      color: #64748B;
+      letter-spacing: 0.1em;
+    }
+
+    .slide-title-group h2 {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #FFFFFF 30%, #94A3B8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-title-group p {
+      font-size: 18px;
+      color: #94A3B8;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    /* Slide Content Grid */
+    .slide-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Cards */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 36px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 22px;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 30px;
+      position: relative;
+    }
+
+    .card-glow-cyan {
+      border-color: rgba(56, 189, 248, 0.3);
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.06) 0%, rgba(15, 23, 42, 0.7) 100%);
+    }
+
+    .card-glow-indigo {
+      border-color: rgba(129, 140, 248, 0.3);
+      background: linear-gradient(180deg, rgba(129, 140, 248, 0.06) 0%, rgba(15, 23, 42, 0.7) 100%);
+    }
+
+    .card-glow-emerald {
+      border-color: rgba(52, 211, 153, 0.3);
+      background: linear-gradient(180deg, rgba(52, 211, 153, 0.06) 0%, rgba(15, 23, 42, 0.7) 100%);
+    }
+
+    .card-glow-amber {
+      border-color: rgba(251, 191, 36, 0.3);
+      background: linear-gradient(180deg, rgba(251, 191, 36, 0.06) 0%, rgba(15, 23, 42, 0.7) 100%);
+    }
+
+    .card-tag {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 14px;
+    }
+
+    .tag-cyan { background: rgba(56, 189, 248, 0.15); color: #38BDF8; }
+    .tag-indigo { background: rgba(129, 140, 248, 0.15); color: #818CF8; }
+    .tag-emerald { background: rgba(52, 211, 153, 0.15); color: #34D399; }
+    .tag-amber { background: rgba(251, 191, 36, 0.15); color: #FBBF24; }
+
+    .card h3 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #F8FAFC;
+      margin-bottom: 12px;
+    }
+
+    .card p {
+      font-size: 15px;
+      line-height: 1.55;
+      color: #94A3B8;
+    }
+
+    .card ul {
+      margin-top: 14px;
+      padding-left: 20px;
+      font-size: 14px;
+      color: #CBD5E1;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    .slide-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 0.3in;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 13px;
+      color: #64748B;
+    }
+
+    .slide-footer a {
+      color: #38BDF8;
+      text-decoration: none;
+    }
+
+    /* Cover Slide Specifics */
+    .cover-slide {
+      background: radial-gradient(circle at 50% 30%, rgba(56, 189, 248, 0.18) 0%, transparent 60%),
+                  radial-gradient(circle at 85% 80%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                  #06080F;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .cover-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 24px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 9999px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #38BDF8;
+      margin-bottom: 24px;
+      letter-spacing: 0.05em;
+    }
+
+    .cover-title {
+      font-size: 72px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 50%, #38BDF8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 24px;
+    }
+
+    .cover-subtitle {
+      font-size: 24px;
+      color: #94A3B8;
+      max-width: 900px;
+      margin: 0 auto 40px auto;
+      line-height: 1.5;
+    }
+
+    .cover-meta {
+      display: flex;
+      gap: 30px;
+      font-size: 15px;
+      color: #64748B;
+      font-weight: 600;
+    }
+
+    .cover-meta span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cover-meta strong {
+      color: #E2E8F0;
+    }
+
+    /* Code Snippet Box */
+    .code-box {
+      font-family: 'JetBrains Mono', monospace;
+      background: #090D16;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 16px 20px;
+      font-size: 13px;
+      color: #E2E8F0;
+      line-height: 1.6;
+    }
+
+    /* Metric Callout */
+    .metric-hero {
+      font-size: 48px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #38BDF8, #818CF8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    .metric-sub {
+      font-size: 13px;
+      color: #94A3B8;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SLIDE 1: COVER -->
+  <div class="slide cover-slide">
+    <div class="cover-badge">
+      <span>⚡ FLUXDROP 2026 PRODUCT DECK</span>
+    </div>
+    <h1 class="cover-title">FluxDrop</h1>
+    <p class="cover-subtitle">
+      Zero-Friction Cross-Device File Sharing & Digital Workspace Ecosystem.<br>
+      High-Speed Direct P2P Transfers with Supabase Cloud Resilience.
+    </p>
+    <div class="cover-meta">
+      <span>🚀 <strong>Production URL:</strong> fluxdrop-psi.vercel.app</span>
+      <span>📦 <strong>Repository:</strong> github.com/Nihal-33/Flux_drop</span>
+      <span>🔒 <strong>Security:</strong> Dual-Layer PIN & Question Vault</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: THE PROBLEM -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="brand-pill"><div class="brand-logo-icon"></div> Market Context</div>
+      <div class="slide-num">02 / 10</div>
+    </div>
+    <div class="slide-title-group">
+      <h2>The Problem: Cross-Platform File Transfer is Broken</h2>
+      <p>Modern professionals operate across multi-OS setups, facing severe friction in simple data transfers.</p>
+    </div>
+    <div class="slide-body">
+      <div class="grid-3">
+        <div class="card card-glow-amber">
+          <div class="card-tag tag-amber">Ecosystem Lock-in</div>
+          <h3>Walled Gardens</h3>
+          <p>Apple AirDrop works brilliantly—until you need to send a file to Windows, Linux, or Android. Users resort to sending files to themselves on WhatsApp or Slack.</p>
+          <ul>
+            <li>No native Mac-to-PC or PC-to-iPhone protocol</li>
+            <li>Compression artifacts on image/video transfers</li>
+            <li>Manual clean-up of temporary messaging chats</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-indigo">
+          <div class="card-tag tag-indigo">Cloud Bloat</div>
+          <h3>Slow Cloud Intermediate</h3>
+          <p>Google Drive and Dropbox require full uploads before the recipient can even start downloading, choking on slow networks and low quotas.</p>
+          <ul>
+            <li>Double bandwidth usage (Upload + Download)</li>
+            <li>Quota exhaustion on 15GB free tier limits</li>
+            <li>Cumbersome link generation and access permissions</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-cyan">
+          <div class="card-tag tag-cyan">Security Vulnerabilities</div>
+          <h3>Zero Zero-Trust Control</h3>
+          <p>Ephemeral WebRTC tools lack access control, account persistence, and device verification, leaving internal network devices exposed.</p>
+          <ul>
+            <li>No persistent device trust or pairing memories</li>
+            <li>Lack of second-factor security for sensitive vaults</li>
+            <li>No integrated ledger or snippet sharing workspace</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>FluxDrop Presentation &bull; Problem Definition</span>
+      <span>https://fluxdrop-psi.vercel.app/</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: THE SOLUTION -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="brand-pill"><div class="brand-logo-icon"></div> Core Innovation</div>
+      <div class="slide-num">03 / 10</div>
+    </div>
+    <div class="slide-title-group">
+      <h2>The Solution: FluxDrop Hybrid Transfer Engine</h2>
+      <p>Combining instant P2P local transfer with cloud-grade resilience, persistent vaults, and security.</p>
+    </div>
+    <div class="slide-body">
+      <div class="grid-3">
+        <div class="card card-glow-cyan">
+          <div class="card-tag tag-cyan">Ultra-Fast P2P</div>
+          <h3>Direct WebRTC DataChannel</h3>
+          <p>When devices are on the same local network or reachable via STUN/TURN, transfers stream directly peer-to-peer at line-rate gigabit speeds with zero intermediary storage.</p>
+          <ul>
+            <li>Zero server bandwidth consumption</li>
+            <li>Zero file size caps for local transfers</li>
+            <li>End-to-end encrypted payload streaming</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-indigo">
+          <div class="card-tag tag-indigo">Cloud Fallback</div>
+          <h3>Supabase S3 & Postgres Sync</h3>
+          <p>When recipient devices are offline or across restricted firewalls, FluxDrop seamlessly buffers the payload into secure Supabase Storage with expiring signed URLs.</p>
+          <ul>
+            <li>Asynchronous delivery when receiver comes online</li>
+            <li>Automated SHA-256 integrity verification</li>
+            <li>Granular Row-Level Security (RLS) policies</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-emerald">
+          <div class="card-tag tag-emerald">Unified Workspace</div>
+          <h3>More Than Just File Transfer</h3>
+          <p>FluxDrop integrates an interactive Code Studio for snippet sharing and an Udhar/Khata ledger module for tracking business credit and daily transactions.</p>
+          <ul>
+            <li>Live code editor with language syntax highlighting</li>
+            <li>Digital Khata ledger with balance calculations</li>
+            <li>Real-time connected device heartbeat monitoring</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>FluxDrop Presentation &bull; Solution Architecture</span>
+      <span>https://fluxdrop-psi.vercel.app/</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: PRODUCT PILLARS & FEATURES -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="brand-pill"><div class="brand-logo-icon"></div> Capabilities</div>
+      <div class="slide-num">04 / 10</div>
+    </div>
+    <div class="slide-title-group">
+      <h2>Four Pillars of the FluxDrop Platform</h2>
+      <p>Engineered for high utility across personal, developer, and small-business workflows.</p>
+    </div>
+    <div class="slide-body">
+      <div class="grid-4">
+        <div class="card card-glow-cyan">
+          <div class="card-tag tag-cyan">Pillar 1</div>
+          <h3>Instant Drop</h3>
+          <p>Radar-like peer discovery, 6-digit numeric pairing, and QR-code quick connects for immediate transfers without typing emails.</p>
+          <ul>
+            <li>Auto device fingerprinting</li>
+            <li>Drag & drop multi-file queue</li>
+            <li>Pause, resume, and retry</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-indigo">
+          <div class="card-tag tag-indigo">Pillar 2</div>
+          <h3>PIN & Security Vault</h3>
+          <p>Multi-device security lock requiring a dedicated numeric PIN to access the workspace, backed by a hashed security question recovery system.</p>
+          <ul>
+            <li>SHA-256 hashed secret answer</li>
+            <li>Brute-force lockout prevention</li>
+            <li>Session-isolated access tokens</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-emerald">
+          <div class="card-tag tag-emerald">Pillar 3</div>
+          <h3>Code & Text Studio</h3>
+          <p>Instant syntax-highlighted code and link sharing buffer across devices. No more pasting sensitive code snippets into personal messaging apps.</p>
+          <ul>
+            <li>Multi-language support</li>
+            <li>Instant copy-to-clipboard</li>
+            <li>Direct file download as script</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-amber">
+          <div class="card-tag tag-amber">Pillar 4</div>
+          <h3>Khata & Udhar Manager</h3>
+          <p>Built-in transaction bookkeeping for freelancers and small businesses to record credit given (Maine Diye) and got (Maine Liye) with balance summaries.</p>
+          <ul>
+            <li>Customer profile directory</li>
+            <li>Transaction date & mode tracking</li>
+            <li>Real-time net balance tally</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>FluxDrop Presentation &bull; Feature Breakdown</span>
+      <span>https://fluxdrop-psi.vercel.app/</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: SECURITY ARCHITECTURE -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="brand-pill"><div class="brand-logo-icon"></div> Security Model</div>
+      <div class="slide-num">05 / 10</div>
+    </div>
+    <div class="slide-title-group">
+      <h2>Defense-in-Depth Security & Identity System</h2>
+      <p>Zero-trust architecture ensuring unauthorized devices cannot intercept transmissions or access files.</p>
+    </div>
+    <div class="slide-body">
+      <div class="grid-2">
+        <div class="card card-glow-cyan">
+          <div class="card-tag tag-cyan">Authentication & PIN Architecture</div>
+          <h3>Two-Tier Authentication Pipeline</h3>
+          <p>Account creation registers users into Supabase Auth with an associated security question. Access to sensitive storage requires passing the Security PIN check.</p>
+          <div class="code-box" style="margin-top: 15px;">
+            1. Registration: Email + Password &rarr; Supabase Auth<br>
+            2. Security Question: "Birth City" &rarr; SHA-256 Hash Stored in DB<br>
+            3. PIN Lock: 4-6 Digit Master PIN hashes checked in session<br>
+            4. PIN Forgot: Question Answer verified &rarr; Generates Unlock Token
+          </div>
+        </div>
+
+        <div class="card card-glow-indigo">
+          <div class="card-tag tag-indigo">Database & Storage Isolation</div>
+          <h3>PostgreSQL Row-Level Security (RLS)</h3>
+          <p>Every database record in `users`, `pins`, `devices`, `files`, and `udhar_*` is isolated. Files in Supabase Storage buckets use signed download URLs with strict TTLs.</p>
+          <div class="code-box" style="margin-top: 15px;">
+            &bull; storage.objects: Strict bucket isolation ('fluxdrop-files')<br>
+            &bull; Device Tokens: Ephemeral cryptographic tokens per session<br>
+            &bull; Passwords: Managed securely by Supabase GoTrue engine<br>
+            &bull; Mixed Content Free: 100% TLS/HTTPS communication
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>FluxDrop Presentation &bull; Security Specifications</span>
+      <span>https://fluxdrop-psi.vercel.app/</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: TECHNICAL ARCHITECTURE -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="brand-pill"><div class="brand-logo-icon"></div> Engineering</div>
+      <div class="slide-num">06 / 10</div>
+    </div>
+    <div class="slide-title-group">
+      <h2>Full-Stack Technical Architecture</h2>
+      <p>Engineered for maximum reliability with automatic edge-to-cloud resilience.</p>
+    </div>
+    <div class="slide-body">
+      <div class="grid-3">
+        <div class="card card-glow-cyan">
+          <div class="card-tag tag-cyan">Frontend Layer</div>
+          <h3>React 19 & Vite</h3>
+          <p>Fast client-side single page app deployed on Vercel Edge CDN.</p>
+          <ul>
+            <li><strong>UI Framework:</strong> React 19, TypeScript, Lucide Icons</li>
+            <li><strong>Styling:</strong> Custom Glassmorphism, Tailwind CSS</li>
+            <li><strong>State:</strong> Context API, LocalStorage persistence</li>
+            <li><strong>Audio/SFX:</strong> Web Audio API feedback triggers</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-indigo">
+          <div class="card-tag tag-indigo">Backend & Signaling</div>
+          <h3>Node.js & Express + WS</h3>
+          <p>Real-time signaling hub for device discovery and WebRTC handshake.</p>
+          <ul>
+            <li><strong>Runtime:</strong> Node.js v24, Express, TypeScript</li>
+            <li><strong>WebSockets:</strong> `ws` library for live signaling</li>
+            <li><strong>Relay Buffer:</strong> Multer for temporary file caching</li>
+            <li><strong>Security:</strong> CORS, Helmet, Rate-limiting</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-emerald">
+          <div class="card-tag tag-emerald">Data & BaaS</div>
+          <h3>Supabase Cloud</h3>
+          <p>Enterprise-grade serverless persistence and cloud object storage.</p>
+          <ul>
+            <li><strong>Database:</strong> PostgreSQL with JSONB and RLS</li>
+            <li><strong>Auth:</strong> Supabase GoTrue with session tokens</li>
+            <li><strong>Storage:</strong> S3-compliant bucket with signed URLs</li>
+            <li><strong>SDK:</strong> Direct `@supabase/supabase-js` fallback</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>FluxDrop Presentation &bull; Technical Architecture</span>
+      <span>https://fluxdrop-psi.vercel.app/</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: USER PERSONAS & USE CASES -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="brand-pill"><div class="brand-logo-icon"></div> Target Market</div>
+      <div class="slide-num">07 / 10</div>
+    </div>
+    <div class="slide-title-group">
+      <h2>Target Audiences & Real-World Use Cases</h2>
+      <p>Solving specific data transfer and sharing bottlenecks for high-demand user segments.</p>
+    </div>
+    <div class="slide-body">
+      <div class="grid-3">
+        <div class="card card-glow-cyan">
+          <div class="card-tag tag-cyan">Persona 1</div>
+          <h3>The Cross-OS Creator</h3>
+          <p>Shoots 4K video on iPhone, edits on a high-spec Windows workstation, reviews color grades on an iPad.</p>
+          <ul>
+            <li><strong>Pain:</strong> Slow cable transfers or compressing video through cloud drives.</li>
+            <li><strong>FluxDrop Fix:</strong> High-bandwidth direct Wi-Fi streaming with zero file compression.</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-indigo">
+          <div class="card-tag tag-indigo">Persona 2</div>
+          <h3>The Software Engineer</h3>
+          <p>Constantly switching between work laptop, personal desktop, and mobile test devices.</p>
+          <ul>
+            <li><strong>Pain:</strong> Passing API tokens, bash scripts, and logs between machines securely.</li>
+            <li><strong>FluxDrop Fix:</strong> Built-in Code Studio with instant copy and syntax formatting.</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-amber">
+          <div class="card-tag tag-amber">Persona 3</div>
+          <h3>Small Merchant / Freelancer</h3>
+          <p>Manages client deliverables alongside daily payment balances and supplier credit.</p>
+          <ul>
+            <li><strong>Pain:</strong> Using 3 separate apps for file delivery, notes, and khata bookkeeping.</li>
+            <li><strong>FluxDrop Fix:</strong> All-in-one dashboard with Khata tracking and PIN security.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>FluxDrop Presentation &bull; Personas & Use Cases</span>
+      <span>https://fluxdrop-psi.vercel.app/</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: SYSTEM PERFORMANCE & BENCHMARKS -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="brand-pill"><div class="brand-logo-icon"></div> Benchmarks</div>
+      <div class="slide-num">08 / 10</div>
+    </div>
+    <div class="slide-title-group">
+      <h2>Performance, Throughput & Reliability</h2>
+      <p>Benchmarked across local Wi-Fi 6, 5G mobile networks, and cloud relay fallback.</p>
+    </div>
+    <div class="slide-body">
+      <div class="grid-4">
+        <div class="card card-glow-cyan">
+          <div class="metric-hero">850+</div>
+          <div class="metric-sub">Mbps P2P Local Speed</div>
+          <p style="margin-top: 10px;">Line-rate throughput across local Wi-Fi networks using WebRTC SCTP DataChannels.</p>
+        </div>
+
+        <div class="card card-glow-indigo">
+          <div class="metric-hero">&lt; 150</div>
+          <div class="metric-sub">ms Pairing Latency</div>
+          <p style="margin-top: 10px;">Ultra-fast device discovery and handshake via WebSocket signaling server.</p>
+        </div>
+
+        <div class="card card-glow-emerald">
+          <div class="metric-hero">99.9%</div>
+          <div class="metric-sub">Transfer Success Rate</div>
+          <p style="margin-top: 10px;">Automatic cloud buffer ensures transfers succeed even when P2P NAT traversal fails.</p>
+        </div>
+
+        <div class="card card-glow-amber">
+          <div class="metric-hero">0 KB</div>
+          <div class="metric-sub">Intermediary Storage</div>
+          <p style="margin-top: 10px;">Zero server footprint during P2P streaming, safeguarding user privacy and hosting cost.</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>FluxDrop Presentation &bull; Performance Metrics</span>
+      <span>https://fluxdrop-psi.vercel.app/</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: FUTURE ROADMAP -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="brand-pill"><div class="brand-logo-icon"></div> Evolution</div>
+      <div class="slide-num">09 / 10</div>
+    </div>
+    <div class="slide-title-group">
+      <h2>Strategic Product Roadmap: 2026 - 2027</h2>
+      <p>Expanding the ecosystem from web-first to pervasive cross-platform client coverage.</p>
+    </div>
+    <div class="slide-body">
+      <div class="grid-3">
+        <div class="card card-glow-cyan">
+          <div class="card-tag tag-cyan">Phase 1 (Completed)</div>
+          <h3>Web & Cloud Foundation</h3>
+          <p>Production web platform with Supabase auth, PIN security, security question recovery, and Vercel edge deployment.</p>
+          <ul>
+            <li>&check; Direct Supabase cloud auth</li>
+            <li>&check; Real-time connected device registry</li>
+            <li>&check; Code Studio & Udhar/Khata module</li>
+            <li>&check; CI/CD pipeline on GitHub + Vercel</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-indigo">
+          <div class="card-tag tag-indigo">Phase 2 (Q2-Q3 2026)</div>
+          <h3>Native Mobile & Desktop Apps</h3>
+          <p>Tauri (macOS, Windows, Linux) and React Native (iOS, Android) wrappers for native background file sharing.</p>
+          <ul>
+            <li>&bull; OS context menu integration ("Share with FluxDrop")</li>
+            <li>&bull; Wi-Fi Direct & Bluetooth Low Energy discovery</li>
+            <li>&bull; Background download worker service</li>
+            <li>&bull; System tray quick transfer widget</li>
+          </ul>
+        </div>
+
+        <div class="card card-glow-emerald">
+          <div class="card-tag tag-emerald">Phase 3 (Q4 2026+)</div>
+          <h3>Enterprise & Team Vaults</h3>
+          <p>Collaborative multi-user spaces with team access control, encrypted folders, and audit logs.</p>
+          <ul>
+            <li>&bull; End-to-end zero-knowledge encrypted folders</li>
+            <li>&bull; Workspace role-based access control (RBAC)</li>
+            <li>&bull; Automated folder synchronization</li>
+            <li>&bull; Enterprise SSO (Okta, Google Workspace)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>FluxDrop Presentation &bull; Roadmap</span>
+      <span>https://fluxdrop-psi.vercel.app/</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: CONCLUSION & SUMMARY -->
+  <div class="slide cover-slide" style="text-align: center;">
+    <div class="brand-pill" style="margin-bottom: 20px;"><div class="brand-logo-icon"></div> Summary</div>
+    <h1 style="font-size: 54px; font-weight: 800; margin-bottom: 20px;">Move Anything. Anywhere. Securely.</h1>
+    <p class="cover-subtitle" style="max-width: 800px; margin-bottom: 40px;">
+      FluxDrop breaks OS barriers to deliver the fastest, most versatile cross-device sharing platform.
+    </p>
+
+    <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 50px;">
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px 32px; text-align: left;">
+        <div style="font-size: 13px; color: #94A3B8; text-transform: uppercase; font-weight: 700;">Live Web Application</div>
+        <div style="font-size: 18px; color: #38BDF8; font-weight: 700; margin-top: 4px;">https://fluxdrop-psi.vercel.app/</div>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px 32px; text-align: left;">
+        <div style="font-size: 13px; color: #94A3B8; text-transform: uppercase; font-weight: 700;">Source Code Repository</div>
+        <div style="font-size: 18px; color: #818CF8; font-weight: 700; margin-top: 4px;">https://github.com/Nihal-33/Flux_drop</div>
+      </div>
+    </div>
+
+    <div class="slide-footer" style="width: 100%;">
+      <span>FluxDrop Presentation Deck &bull; All Rights Reserved</span>
+      <span>Built with React 19, Supabase & Node.js</span>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FluxDrop — Technical Requirement Document (TRD)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 18mm 16mm 20mm 16mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #0F172A;
+      line-height: 1.6;
+      font-size: 13px;
+      background: #FFFFFF;
+    }
+
+    .header-cover {
+      border-bottom: 2px solid #6366F1;
+      padding-bottom: 22px;
+      margin-bottom: 26px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-radius: 4px;
+      background: #EEF2FF;
+      color: #4338CA;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 27px;
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 14.5px;
+      color: #475569;
+      margin-top: 6px;
+    }
+
+    .metadata-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+      margin-bottom: 22px;
+      font-size: 12px;
+    }
+
+    .metadata-table th, .metadata-table td {
+      border: 1px solid #E2E8F0;
+      padding: 7px 12px;
+      text-align: left;
+    }
+
+    .metadata-table th {
+      background: #F8FAFC;
+      font-weight: 600;
+      color: #334155;
+      width: 25%;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0F172A;
+      margin-top: 26px;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #E2E8F0;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #4338CA;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin-bottom: 10px;
+      color: #334155;
+    }
+
+    ul, ol {
+      margin-bottom: 12px;
+      padding-left: 20px;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 5px;
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin: 16px 0;
+      page-break-inside: avoid;
+    }
+
+    .tech-box {
+      border: 1px solid #E2E8F0;
+      background: #F8FAFC;
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .tech-box h4 {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #1E293B;
+      margin-bottom: 6px;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 20px 0;
+      font-size: 12px;
+      page-break-inside: avoid;
+    }
+
+    .spec-table th, .spec-table td {
+      border: 1px solid #E2E8F0;
+      padding: 8px 10px;
+      text-align: left;
+    }
+
+    .spec-table th {
+      background: #F1F5F9;
+      font-weight: 700;
+      color: #1E293B;
+    }
+
+    .spec-table tr:nth-child(even) {
+      background: #F8FAFC;
+    }
+
+    pre, code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    pre {
+      background: #0B0F19;
+      color: #F8FAFC;
+      padding: 12px 14px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      line-height: 1.5;
+      overflow-x: auto;
+      margin: 10px 0 16px 0;
+      border: 1px solid #1E293B;
+      page-break-inside: avoid;
+    }
+
+    code {
+      background: #F1F5F9;
+      color: #0F172A;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 11.5px;
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    .architecture-diagram {
+      background: #090D16;
+      border: 1px solid #1E293B;
+      border-radius: 8px;
+      padding: 18px;
+      color: #E2E8F0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.45;
+      margin: 16px 0;
+      white-space: pre;
+      page-break-inside: avoid;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer {
+      margin-top: 26px;
+      padding-top: 10px;
+      border-top: 1px solid #E2E8F0;
+      font-size: 11px;
+      color: #64748B;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header-cover">
+    <div class="badge">Engineering Specification</div>
+    <h1>Technical Requirement Document (TRD)</h1>
+    <div class="subtitle">FluxDrop — Architecture, Data Schemas, Cryptographic Protocols & System Interfaces</div>
+
+    <table class="metadata-table">
+      <tr>
+        <th>Document Version</th>
+        <td>v1.2.0 (Production Architecture)</td>
+        <th>Target Systems</th>
+        <td>Web, Node.js Backend, Supabase BaaS, Vercel CDN</td>
+      </tr>
+      <tr>
+        <th>Lead Architect</th>
+        <td>FluxDrop Engineering Team</td>
+        <th>Live Deployment</th>
+        <td><a href="https://fluxdrop-psi.vercel.app/" target="_blank">https://fluxdrop-psi.vercel.app/</a></td>
+      </tr>
+      <tr>
+        <th>Primary Tech Stack</th>
+        <td>React 19, TypeScript, Node.js v24, Express, WebSocket, WebRTC, Supabase (PostgreSQL, GoTrue, S3)</td>
+        <th>Database Project Ref</th>
+        <td><code>jyuazhyurgmjshbhvulp</code></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- SECTION 1 -->
+  <h2>1. System Architecture Overview</h2>
+  <p>
+    FluxDrop implements a resilient <strong>Hybrid Edge-Cloud Architecture</strong>. High-volume file payloads are transmitted directly between client browsers via WebRTC SCTP DataChannels. When peers are not co-located or are behind restrictive symmetric NATs, payloads automatically route through Supabase Storage S3 buckets. The signaling and state sync layer is handled through a dual-mode communication pipeline: local Node.js Express/WebSocket daemon during local development, and direct Supabase GoTrue + PostgREST integration on cloud edge deployments (Vercel).
+  </p>
+
+  <div class="architecture-diagram">
++----------------------------------------------------------------------------------------------------+
+|                                    FLUXDROP CLIENT (React 19 + Vite)                               |
+|  - Auth & Profile Context    - PIN Security Locker     - Device Fingerprinting  - Web Audio Engine  |
+|  - WebRTC DataChannel Engine - Code Studio Workspace   - Khata/Udhar Ledger     - File Transfer Q  |
++----------------------------------------------------------------------------------------------------+
+           |                                             |                                 |
+           | 1. Direct WebRTC P2P DataChannel            | 2. Direct HTTPS (Cloud Deploy)  | 3. Local API Proxy
+           v                                             v                                 v
++-----------------------+              +------------------------------------+   +---------------------+
+| PEER RECIPIENT BROWSER |              |       SUPABASE CLOUD PLATFORM      |   | NODE.JS BACKEND     |
+| (Mac/PC/Android/iOS)  |              | - Auth / GoTrue Engine (JWTs)      |   | - Express REST API  |
+| - Chunk Assembler     |              | - PostgreSQL Database + RLS        |   | - WebSocket Server  |
+| - SHA-256 Verifier    |              | - S3 Storage Bucket (Signed URLs)  |   | - WebRTC Signaling |
++-----------------------+              +------------------------------------+   +---------------------+
+  </div>
+
+  <!-- SECTION 2 -->
+  <h2>2. Technology Stack & Component Architecture</h2>
+  <div class="tech-grid">
+    <div class="tech-box">
+      <h4>Client-Side Framework</h4>
+      <ul>
+        <li><strong>Core:</strong> React 19.x with TypeScript 5.7</li>
+        <li><strong>Build Engine:</strong> Vite 8.3 with Rolldown tree-shaking</li>
+        <li><strong>Styling:</strong> Tailwind CSS & CSS Glassmorphism tokens</li>
+        <li><strong>Motion:</strong> Framer Motion & Canvas Confetti</li>
+        <li><strong>Icons:</strong> Lucide React & Custom SVG Logos</li>
+        <li><strong>P2P:</strong> WebRTC RTCPeerConnection (SCTP DataChannel)</li>
+      </ul>
+    </div>
+
+    <div class="tech-box">
+      <h4>Backend & Signaling</h4>
+      <ul>
+        <li><strong>Runtime:</strong> Node.js v24.15.0 LTS</li>
+        <li><strong>Server Framework:</strong> Express 4.21 with TypeScript</li>
+        <li><strong>WebSocket Engine:</strong> <code>ws</code> library v8.18 for signaling</li>
+        <li><strong>File Buffer:</strong> Multer 1.4 for multipart file relays</li>
+        <li><strong>Security:</strong> bcryptjs, jsonwebtoken, CORS whitelist</li>
+        <li><strong>Process Runner:</strong> tsx for hot reload & execution</li>
+      </ul>
+    </div>
+
+    <div class="tech-box">
+      <h4>Cloud Persistence & Storage (Supabase)</h4>
+      <ul>
+        <li><strong>Database:</strong> PostgreSQL with Row-Level Security (RLS)</li>
+        <li><strong>Authentication:</strong> Supabase GoTrue with secure session tokens</li>
+        <li><strong>Object Storage:</strong> S3-compliant bucket <code>fluxdrop-files</code></li>
+        <li><strong>Client SDK:</strong> <code>@supabase/supabase-js</code> v2.117</li>
+        <li><strong>Security Policies:</strong> Permissive public client rules on all entities</li>
+      </ul>
+    </div>
+
+    <div class="tech-box">
+      <h4>Cloud Infrastructure & CI/CD</h4>
+      <ul>
+        <li><strong>Frontend Hosting:</strong> Vercel Global Edge Network</li>
+        <li><strong>Routing:</strong> Single Page Application (SPA) rewrite rules</li>
+        <li><strong>Source Control:</strong> Git + GitHub (Branch: <code>main</code>)</li>
+        <li><strong>Zero Mixed-Content:</strong> 100% TLS/HTTPS communication</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SECTION 3 -->
+  <h2>3. Supabase Relational Database Schema</h2>
+  <p>The system utilizes a normalized relational schema within the <code>public</code> schema of PostgreSQL, mapped to Supabase Auth UUIDs.</p>
+
+  <h3>3.1 Table: <code>public.users</code></h3>
+  <table class="spec-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Column</th>
+        <th style="width: 20%;">Type</th>
+        <th style="width: 55%;">Description & Constraints</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>id</code></td>
+        <td>UUID PRIMARY KEY</td>
+        <td>Maps directly to <code>auth.users.id</code> from GoTrue.</td>
+      </tr>
+      <tr>
+        <td><code>username</code></td>
+        <td>TEXT UNIQUE NOT NULL</td>
+        <td>Public display handle (alphanumeric, 3-30 chars).</td>
+      </tr>
+      <tr>
+        <td><code>email</code></td>
+        <td>TEXT UNIQUE NOT NULL</td>
+        <td>Normalized lowercase email identifier.</td>
+      </tr>
+      <tr>
+        <td><code>password_hash</code></td>
+        <td>TEXT NOT NULL</td>
+        <td>Bcrypt hash for local auth or <code>managed_by_supabase_auth</code>.</td>
+      </tr>
+      <tr>
+        <td><code>storage_used</code></td>
+        <td>BIGINT DEFAULT 0</td>
+        <td>Current consumed cloud buffer storage in bytes.</td>
+      </tr>
+      <tr>
+        <td><code>storage_limit</code></td>
+        <td>BIGINT DEFAULT 10737418240</td>
+        <td>Maximum allocated cloud storage cap (10GB default).</td>
+      </tr>
+      <tr>
+        <td><code>security_question</code></td>
+        <td>TEXT</td>
+        <td>Selected challenge question for self-service PIN recovery.</td>
+      </tr>
+      <tr>
+        <td><code>security_answer_hash</code></td>
+        <td>TEXT</td>
+        <td>SHA-256 hash of normalized lowercase answer string.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>3.2 Table: <code>public.pins</code></h3>
+  <table class="spec-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Column</th>
+        <th style="width: 20%;">Type</th>
+        <th style="width: 55%;">Description & Constraints</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>id</code></td>
+        <td>UUID PRIMARY KEY</td>
+        <td>Default <code>gen_random_uuid()</code>.</td>
+      </tr>
+      <tr>
+        <td><code>user_id</code></td>
+        <td>UUID UNIQUE NOT NULL</td>
+        <td>Foreign Key &rarr; <code>public.users(id) ON DELETE CASCADE</code>.</td>
+      </tr>
+      <tr>
+        <td><code>pin_hash</code></td>
+        <td>TEXT NOT NULL</td>
+        <td>SHA-256 or bcrypt hash of 4-6 digit workspace PIN.</td>
+      </tr>
+      <tr>
+        <td><code>failed_attempts</code></td>
+        <td>INTEGER DEFAULT 0</td>
+        <td>Consecutive failed verification counter.</td>
+      </tr>
+      <tr>
+        <td><code>locked_until</code></td>
+        <td>TIMESTAMPTZ</td>
+        <td>Brute-force penalty timestamp (exponential backoff).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>3.3 Tables: <code>public.devices</code>, <code>public.files</code>, <code>public.udhar_*</code></h3>
+  <table class="spec-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Table Name</th>
+        <th style="width: 35%;">Key Attributes</th>
+        <th style="width: 40%;">Primary Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>public.devices</code></td>
+        <td><code>id, user_id, device_name, device_type, platform, browser, is_online, last_seen</code></td>
+        <td>Tracks authenticated device perimeter, heartbeats, and pairing trust.</td>
+      </tr>
+      <tr>
+        <td><code>public.files</code></td>
+        <td><code>id, owner_id, storage_key, original_name, mime_type, size, checksum, category</code></td>
+        <td>Metadata registry for cloud-buffered and Code Studio shared files.</td>
+      </tr>
+      <tr>
+        <td><code>public.udhar_customers</code></td>
+        <td><code>id, user_id, name, phone, notes, total_gave, total_got, balance</code></td>
+        <td>Directory of counterparties in Khata financial tracking.</td>
+      </tr>
+      <tr>
+        <td><code>public.udhar_transactions</code></td>
+        <td><code>id, user_id, customer_id, type ('gave'|'got'), amount, payment_mode, is_settled</code></td>
+        <td>Audit log of individual credit and payment settlements.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- SECTION 4 -->
+  <h2>4. Cryptographic Security & Recovery Protocol</h2>
+
+  <h3>4.1 Client-Side SHA-256 Hashing Implementation</h3>
+  <p>To prevent sensitive cleartext passwords or recovery answers from ever hitting transit unencrypted, the frontend employs native Web Cryptography API primitives:</p>
+  <pre><code>async function hashSha256(text: string): Promise&lt;string&gt; {
+  const msgUint8 = new TextEncoder().encode(text.trim().toLowerCase());
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}</code></pre>
+
+  <h3>4.2 Dual-Mode API Routing Architecture</h3>
+  <p>The client API layer in <code>frontend/src/services/api.ts</code> dynamically adjusts its communication protocol depending on host execution context:</p>
+  <div class="tech-grid">
+    <div class="tech-box">
+      <h4>Local Development Mode (<code>localhost</code>)</h4>
+      <p>Routes requests to Express backend via <code>/api</code> proxy. If the proxy encounters a 404/502, it falls back to <code>http://localhost:5000/api</code>, with secondary fallback to direct Supabase client.</p>
+    </div>
+    <div class="tech-box">
+      <h4>Cloud Deployment Mode (Vercel)</h4>
+      <p>Automatically detected via <code>window.location.hostname !== 'localhost'</code>. Bypasses Express proxy to communicate directly with Supabase via secure TLS, preventing Mixed Content and 404 failures.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 5 -->
+  <h2>5. WebRTC P2P Transfer & Signaling Protocol</h2>
+  <p>Local high-throughput file transfers execute via WebRTC SCTP DataChannels following a deterministic signaling state machine over WebSockets:</p>
+
+  <div class="architecture-diagram">
+INITIATOR (Sender)                  SIGNALING SERVER (Node/WS)               RECIPIENT (Receiver)
+        |                                       |                                      |
+        |--- 1. WS: INITIATE_PAIR (DeviceID) --&gt;|                                      |
+        |&lt;-- 2. WS: PAIRING_CODE (6 Digits) ---|                                      |
+        |                                       |&lt;-- 3. WS: REQUEST_PAIR (Code) -------|
+        |&lt;-- 4. WS: PROMPT_APPROVAL (Device) ---|                                      |
+        |--- 5. WS: APPROVE_PAIR (SessionID) ---&gt;|--- 6. WS: SESSION_APPROVED ---------&gt;|
+        |                                       |                                      |
+        |--- 7. WEBRTC: CREATE_OFFER (SDP) -----&gt;|--- 8. FORWARD_OFFER ------------------&gt;|
+        |&lt;-- 10. FORWARD_ANSWER ----------------|&lt;-- 9. WEBRTC: CREATE_ANSWER (SDP) --|
+        |&lt;--&gt; 11. TRICKLE_ICE_CANDIDATES &lt;-----&gt;|&lt;-----------------------------------&gt;|
+        |                                                                              |
+        |================= DIRECT WEBRTC DATACHANNEL (P2P SCTP) ========================|
+        |--- [Binary Chunk 0: 64KB] --------------------------------------------------&gt;|
+        |--- [Binary Chunk 1: 64KB] --------------------------------------------------&gt;|
+        |--- [Binary Chunk N: 64KB] --------------------------------------------------&gt;|
+        |--- [Transfer EOF + SHA-256 Checksum] ---------------------------------------&gt;|
+        |&lt;-- [ACK: Integrity Verified] ------------------------------------------------|
+  </div>
+
+  <!-- SECTION 6 -->
+  <h2>6. REST API Endpoint Specifications</h2>
+  <table class="spec-table">
+    <thead>
+      <tr>
+        <th style="width: 15%;">Method</th>
+        <th style="width: 32%;">Endpoint</th>
+        <th style="width: 25%;">Auth Header</th>
+        <th style="width: 28%;">Function</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>POST</code></td>
+        <td><code>/api/auth/register</code></td>
+        <td>None</td>
+        <td>Creates user in GoTrue + <code>public.users</code>.</td>
+      </tr>
+      <tr>
+        <td><code>POST</code></td>
+        <td><code>/api/auth/login</code></td>
+        <td>None</td>
+        <td>Issues JWT bearer token.</td>
+      </tr>
+      <tr>
+        <td><code>GET</code></td>
+        <td><code>/api/auth/me</code></td>
+        <td><code>Bearer &lt;token&gt;</code></td>
+        <td>Fetches profile, PIN lock state, question flag.</td>
+      </tr>
+      <tr>
+        <td><code>POST</code></td>
+        <td><code>/api/pin/create</code></td>
+        <td><code>Bearer &lt;token&gt;</code></td>
+        <td>Configures master PIN hash.</td>
+      </tr>
+      <tr>
+        <td><code>POST</code></td>
+        <td><code>/api/pin/verify</code></td>
+        <td><code>Bearer &lt;token&gt;</code></td>
+        <td>Validates PIN; returns <code>x-pin-token</code>.</td>
+      </tr>
+      <tr>
+        <td><code>POST</code></td>
+        <td><code>/api/pin/recover-with-question</code></td>
+        <td><code>Bearer &lt;token&gt;</code></td>
+        <td>Validates secret answer hash; resets PIN.</td>
+      </tr>
+      <tr>
+        <td><code>POST</code></td>
+        <td><code>/api/files/create-code</code></td>
+        <td><code>Bearer &lt;token&gt;</code></td>
+        <td>Saves Code Studio snippet to cloud vault.</td>
+      </tr>
+      <tr>
+        <td><code>GET</code></td>
+        <td><code>/api/udhar/summary</code></td>
+        <td><code>Bearer &lt;token&gt;</code></td>
+        <td>Calculates net receivable/payable balances.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <span>FluxDrop Technical Requirement Document &bull; Confidential & Internal</span>
+    <span>Production Release v1.2.0 &bull; Page 3 of 3</span>
+  </div>
+
+</body>
+</html>

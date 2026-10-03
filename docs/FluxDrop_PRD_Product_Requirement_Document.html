@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FluxDrop — Product Requirement Document (PRD)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 18mm 16mm 20mm 16mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #0F172A;
+      line-height: 1.65;
+      font-size: 13.5px;
+      background: #FFFFFF;
+    }
+
+    .header-cover {
+      border-bottom: 2px solid #0284C7;
+      padding-bottom: 24px;
+      margin-bottom: 28px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-radius: 4px;
+      background: #E0F2FE;
+      color: #0369A1;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: #475569;
+      margin-top: 6px;
+      font-weight: 400;
+    }
+
+    .metadata-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      margin-bottom: 24px;
+      font-size: 12.5px;
+    }
+
+    .metadata-table th, .metadata-table td {
+      border: 1px solid #E2E8F0;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    .metadata-table th {
+      background: #F8FAFC;
+      font-weight: 600;
+      color: #334155;
+      width: 25%;
+    }
+
+    .metadata-table td {
+      color: #0F172A;
+    }
+
+    h2 {
+      font-size: 19px;
+      font-weight: 700;
+      color: #0F172A;
+      margin-top: 28px;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #E2E8F0;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #0369A1;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin-bottom: 12px;
+      color: #334155;
+    }
+
+    ul, ol {
+      margin-bottom: 14px;
+      padding-left: 22px;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    .callout {
+      background: #F0F9FF;
+      border-left: 4px solid #0284C7;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+
+    .callout-warning {
+      background: #FEF3C7;
+      border-left-color: #D97706;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px 0;
+      font-size: 12.5px;
+      page-break-inside: avoid;
+    }
+
+    .spec-table th, .spec-table td {
+      border: 1px solid #E2E8F0;
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    .spec-table th {
+      background: #F1F5F9;
+      font-weight: 700;
+      color: #1E293B;
+    }
+
+    .spec-table tr:nth-child(even) {
+      background: #F8FAFC;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-completed { background: #DCFCE7; color: #15803D; }
+    .status-in-progress { background: #FEF9C3; color: #854D0E; }
+    .status-planned { background: #E0E7FF; color: #4338CA; }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer {
+      margin-top: 30px;
+      padding-top: 12px;
+      border-top: 1px solid #E2E8F0;
+      font-size: 11px;
+      color: #64748B;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: #F1F5F9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #0F172A;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header-cover">
+    <div class="badge">Official Product Document</div>
+    <h1>Product Requirement Document (PRD)</h1>
+    <div class="subtitle">FluxDrop — Next-Generation Cross-Device File Transfer & Digital Workspace</div>
+
+    <table class="metadata-table">
+      <tr>
+        <th>Document Version</th>
+        <td>v1.2.0 (Production Release)</td>
+        <th>Target Delivery</th>
+        <td>Active Live Deployment</td>
+      </tr>
+      <tr>
+        <th>Author / Product Lead</th>
+        <td>FluxDrop Core Product Team</td>
+        <th>Live URL</th>
+        <td><a href="https://fluxdrop-psi.vercel.app/" target="_blank">https://fluxdrop-psi.vercel.app/</a></td>
+      </tr>
+      <tr>
+        <th>Repository</th>
+        <td>github.com/Nihal-33/Flux_drop</td>
+        <th>Target Audience</th>
+        <td>Cross-platform users, Developers, Remote Workers, Small Merchants</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- SECTION 1 -->
+  <h2>1. Executive Summary & Product Vision</h2>
+  <p>
+    <strong>FluxDrop</strong> is a unified, high-performance web platform designed to eliminate the friction of transferring files, snippets, and data across heterogeneous operating systems (Windows, macOS, Linux, Android, iOS). While proprietary utilities such as Apple AirDrop and Google Quick Share restrict high-speed local transfer to their respective hardware walled-gardens, FluxDrop operates universally via modern web standards, WebRTC P2P DataChannels, and resilient Supabase cloud synchronization.
+  </p>
+  <p>
+    Beyond raw file transmission, FluxDrop introduces an integrated multi-purpose digital workspace comprising a <strong>Zero-Trust Numeric PIN Vault</strong> with security question recovery, a collaborative <strong>Code Studio</strong> for real-time snippet sharing, and a lightweight <strong>Udhar / Khata Bookkeeping Module</strong> tailored for freelancers and local businesses.
+  </p>
+
+  <!-- SECTION 2 -->
+  <h2>2. Problem Statement & Opportunity</h2>
+  <ul>
+    <li><strong>Cross-Ecosystem Incompatibility:</strong> Users who possess both an iPhone and a Windows PC or an Android tablet and a MacBook cannot utilize native peer-to-peer protocols without cumbersome third-party drivers or cloud uploads.</li>
+    <li><strong>Double Bandwidth Inefficiency:</strong> Traditional cloud lockers (Google Drive, OneDrive) require complete remote uploads before recipient download can start, exhausting cellular data caps and introducing latency for large media files.</li>
+    <li><strong>Ephemeral Security Risks:</strong> Ad-hoc browser transfer utilities often fail to authenticate users or protect workspace storage, leaving files exposed to unauthorized devices on shared Wi-Fi networks.</li>
+    <li><strong>Context Switching for Digital Workspaces:</strong> Users routinely shuffle between chat applications (to copy code snippets or links), transfer utilities, and manual spreadsheets to record financial transactions.</li>
+  </ul>
+
+  <!-- SECTION 3 -->
+  <h2>3. Target Personas & User Stories</h2>
+  <table class="spec-table">
+    <thead>
+      <tr>
+        <th style="width: 22%;">Persona</th>
+        <th style="width: 38%;">Description & Needs</th>
+        <th style="width: 40%;">Core User Story</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Alex &bull; Digital Creator</strong></td>
+        <td>Captures 4K B-roll on iPhone 16 Pro, edits video in Premiere Pro on a high-spec Windows 11 desktop.</td>
+        <td><em>"As a video editor, I want to send 5GB raw video clips directly from my iPhone to my PC over local Wi-Fi so that I don't suffer slow cloud upload queues."</em></td>
+      </tr>
+      <tr>
+        <td><strong>Priya &bull; Full-Stack Dev</strong></td>
+        <td>Tests responsive layouts across Android, iOS, and Linux laptops concurrently.</td>
+        <td><em>"As a developer, I want to paste authentication tokens and bash commands into a Code Studio and immediately retrieve them on test devices."</em></td>
+      </tr>
+      <tr>
+        <td><strong>Rajesh &bull; Small Merchant</strong></td>
+        <td>Supplies goods locally and needs a secure place to manage invoices and track customer credit.</td>
+        <td><em>"As a shopkeeper, I want an integrated Khata book protected behind a PIN to record credit given/taken alongside my shared invoices."</em></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- SECTION 4 -->
+  <h2>4. Core Functional Requirements & Feature Breakdown</h2>
+
+  <h3>4.1 User Authentication & Two-Tier Security Lock</h3>
+  <ul>
+    <li><strong>Supabase Cloud Auth:</strong> Users register with username, email, and password. In cloud deployments (Vercel), requests connect directly to Supabase Auth GoTrue over TLS.</li>
+    <li><strong>Security Question Configuration:</strong> During signup, users select a security question (e.g., <em>"What city or place were you born in?"</em>, <em>"What was the name of your first school?"</em>) and enter a secret answer. The answer is hashed with <code>SHA-256</code> on the client before storage to ensure zero-knowledge privacy.</li>
+    <li><strong>Numeric Master PIN:</strong> A mandatory 4-to-6 digit PIN protects the main workspace. PIN verification issues an ephemeral <code>x-pin-token</code> stored in session storage.</li>
+    <li><strong>Self-Service PIN Recovery:</strong> If a user forgets their PIN, answering their configured security question validates the hash and unlocks the account without administrative intervention.</li>
+  </ul>
+
+  <h3>4.2 Device Fingerprinting & Discovery Engine</h3>
+  <ul>
+    <li><strong>Automatic Device Identification:</strong> Captures client OS, browser, device type (Desktop, Laptop, Mobile, Tablet), and screen characteristics, generating a persistent unique Device ID.</li>
+    <li><strong>Radar & Nearby Device Discovery:</strong> Displays available peers on the same local network or authenticated user perimeter.</li>
+    <li><strong>Pairing Verification:</strong> Supports instant 6-digit numeric pairing codes and QR-code scans with explicit user authorization prompts on the receiving device.</li>
+  </ul>
+
+  <h3>4.3 Hybrid Transfer Mechanism (WebRTC + Cloud Fallback)</h3>
+  <ul>
+    <li><strong>Primary P2P Channel:</strong> Utilizes WebRTC SCTP DataChannels with chunked binary buffers (64KB chunks) for line-rate local throughput.</li>
+    <li><strong>Automatic Cloud Buffer:</strong> If WebRTC NAT traversal (ICE handshake) fails or the recipient device is offline, transfers automatically buffer into an S3-compliant Supabase Storage bucket (<code>fluxdrop-files</code>).</li>
+    <li><strong>Integrity Checksums:</strong> Computes client-side SHA-256 checksums to verify payload integrity post-transfer.</li>
+  </ul>
+
+  <h3>4.4 Integrated Code & Text Studio</h3>
+  <ul>
+    <li><strong>Multi-Language Highlighting:</strong> Live code editor supporting TypeScript, JavaScript, Python, HTML/CSS, JSON, and Bash.</li>
+    <li><strong>Instant Cross-Device Sync:</strong> Code snippets saved to the studio are immediately accessible on all paired devices.</li>
+    <li><strong>Export & Run:</strong> Provides one-click copy, download as source file, and formatted markdown preview.</li>
+  </ul>
+
+  <h3>4.5 Udhar / Khata Bookkeeping Module</h3>
+  <ul>
+    <li><strong>Ledger Management:</strong> Record transactions under two primary categories: <em>"Gave" (Maine Diye)</em> and <em>"Got" (Maine Liye)</em>.</li>
+    <li><strong>Customer Directory:</strong> Add and categorize customers with phone numbers, profile tags, and running balance summaries.</li>
+    <li><strong>Settlement Workflow:</strong> Mark outstanding credit as settled with timestamped audit trails.</li>
+  </ul>
+
+  <!-- SECTION 5 -->
+  <h2>5. Feature Status & Release Matrix</h2>
+  <table class="spec-table">
+    <thead>
+      <tr>
+        <th>Feature Module</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Release Milestone</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Supabase Direct Auth & Vercel Resilience</td>
+        <td>P0 (Critical)</td>
+        <td><span class="status-pill status-completed">Completed</span></td>
+        <td>v1.2.0 (Current)</td>
+      </tr>
+      <tr>
+        <td>Security Question Setup & PIN Recovery</td>
+        <td>P0 (Critical)</td>
+        <td><span class="status-pill status-completed">Completed</span></td>
+        <td>v1.2.0 (Current)</td>
+      </tr>
+      <tr>
+        <td>Radar Discovery & 6-Digit Device Pairing</td>
+        <td>P0 (Critical)</td>
+        <td><span class="status-pill status-completed">Completed</span></td>
+        <td>v1.1.0</td>
+      </tr>
+      <tr>
+        <td>WebRTC P2P DataChannel Transfer Engine</td>
+        <td>P0 (Critical)</td>
+        <td><span class="status-pill status-completed">Completed</span></td>
+        <td>v1.0.0</td>
+      </tr>
+      <tr>
+        <td>Code & Text Snippet Studio</td>
+        <td>P1 (High)</td>
+        <td><span class="status-pill status-completed">Completed</span></td>
+        <td>v1.1.0</td>
+      </tr>
+      <tr>
+        <td>Udhar / Khata Ledger System</td>
+        <td>P1 (High)</td>
+        <td><span class="status-pill status-completed">Completed</span></td>
+        <td>v1.1.5</td>
+      </tr>
+      <tr>
+        <td>Tauri Desktop App (Win/Mac/Linux)</td>
+        <td>P2 (Medium)</td>
+        <td><span class="status-pill status-planned">Planned Q3 2026</span></td>
+        <td>v2.0.0</td>
+      </tr>
+      <tr>
+        <td>React Native Mobile App with Wi-Fi Direct</td>
+        <td>P2 (Medium)</td>
+        <td><span class="status-pill status-planned">Planned Q4 2026</span></td>
+        <td>v2.1.0</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- SECTION 6 -->
+  <h2>6. Non-Functional Requirements (NFRs)</h2>
+  <ul>
+    <li><strong>Performance & Latency:</strong> P2P transfer handshake must establish in &lt; 300ms. Local network transfers must utilize up to 90% of available Wi-Fi link bandwidth without CPU throttling.</li>
+    <li><strong>Security & Privacy:</strong> Zero storage of plain-text passwords or security answers. All cloud communications enforced via TLS 1.3. Supabase tables protected by Row-Level Security (RLS).</li>
+    <li><strong>Availability & Fault Tolerance:</strong> 99.9% uptime powered by Vercel Global Edge Network and Supabase multi-zone cloud infrastructure.</li>
+    <li><strong>Responsive Cross-Device Layout:</strong> Viewports from 320px (mobile) to 3840px (4K monitors) render seamlessly without horizontal scrolling or distorted modals.</li>
+  </ul>
+
+  <!-- SECTION 7 -->
+  <h2>7. Key Performance Indicators (KPIs) & Success Metrics</h2>
+  <table class="spec-table">
+    <thead>
+      <tr>
+        <th>Metric Category</th>
+        <th>Target Objective</th>
+        <th>Measurement Method</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Transfer Success Rate</strong></td>
+        <td>&gt; 99.5% completion on all started transfers</td>
+        <td>Client-side telemetry tracking transfer complete vs aborted events.</td>
+      </tr>
+      <tr>
+        <td><strong>Pairing Time-to-Complete</strong></td>
+        <td>&lt; 5 seconds median duration</td>
+        <td>Timer elapsed from code generation to bilateral handshake approval.</td>
+      </tr>
+      <tr>
+        <td><strong>Crash-Free Sessions</strong></td>
+        <td>&gt; 99.8% stability across browser sessions</td>
+        <td>Global React error boundary logging and console error telemetry.</td>
+      </tr>
+      <tr>
+        <td><strong>User Retention Rate</strong></td>
+        <td>&gt; 45% weekly active return rate</td>
+        <td>Supabase weekly active unique device token pings.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <span>FluxDrop Product Requirement Document &bull; Confidential & Internal</span>
+    <span>Production Release v1.2.0 &bull; Page 3 of 3</span>
+  </div>
+
+</body>
+</html>
