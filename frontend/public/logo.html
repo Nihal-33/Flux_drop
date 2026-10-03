@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>FluxDrop Logo</title>
+
+    <style>
+
+        /* ==============================
+           RESET
+        ============================== */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ==============================
+           BODY
+        ============================== */
+
+        body {
+            min-height: 100vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            background:
+                radial-gradient(
+                    circle at 18% 50%,
+                    rgba(0, 255, 220, 0.09),
+                    transparent 28%
+                ),
+                radial-gradient(
+                    circle at 85% 50%,
+                    rgba(0, 255, 200, 0.04),
+                    transparent 30%
+                ),
+                linear-gradient(
+                    135deg,
+                    #030505,
+                    #091111,
+                    #020404
+                );
+
+            font-family: Arial, Helvetica, sans-serif;
+
+            overflow: hidden;
+        }
+
+        /* ==============================
+           MAIN LOGO CONTAINER
+        ============================== */
+
+        .logo-container {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 70px;
+
+            padding: 60px 80px;
+
+            position: relative;
+
+            animation: logoAppear 1.2s ease forwards;
+        }
+
+        /* Background glow */
+
+        .logo-container::before {
+
+            content: "";
+
+            position: absolute;
+
+            width: 500px;
+            height: 500px;
+
+            left: -220px;
+            top: -100px;
+
+            background: rgba(0, 255, 220, 0.06);
+
+            filter: blur(100px);
+
+            border-radius: 50%;
+
+            z-index: -1;
+        }
+
+        /* ==============================
+           LOGO ICON
+        ============================== */
+
+        .logo-icon {
+
+            width: 260px;
+            height: 260px;
+
+            position: relative;
+
+            border-radius: 55px;
+
+            border: 2px solid rgba(100, 255, 230, 0.8);
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(255,255,255,0.09),
+                    rgba(255,255,255,0.015)
+                );
+
+            backdrop-filter: blur(15px);
+
+            box-shadow:
+
+                0 0 25px rgba(0, 255, 220, 0.12),
+
+                0 15px 50px rgba(0,0,0,0.5),
+
+                inset 0 0 30px rgba(255,255,255,0.025);
+
+            transition: 0.4s ease;
+        }
+
+        /* Hover */
+
+        .logo-icon:hover {
+
+            transform: translateY(-8px) rotate(-1deg);
+
+            box-shadow:
+
+                0 0 45px rgba(0,255,220,0.25),
+
+                0 20px 60px rgba(0,0,0,0.6),
+
+                inset 0 0 40px rgba(255,255,255,0.04);
+        }
+
+        /* ==============================
+           TRANSFER CARDS
+        ============================== */
+
+        .transfer-card {
+
+            width: 105px;
+            height: 105px;
+
+            position: absolute;
+
+            border-radius: 25px;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(255,255,255,0.09),
+                    rgba(0,0,0,0.25)
+                );
+
+            backdrop-filter: blur(10px);
+
+            box-shadow:
+                inset 0 0 20px rgba(255,255,255,0.03),
+                0 0 20px rgba(0,255,220,0.12);
+
+            transition: 0.4s ease;
+        }
+
+        /* First card */
+
+        .card-one {
+
+            top: 43px;
+            left: 38px;
+
+            border: 5px solid #61f7df;
+        }
+
+        /* Second card */
+
+        .card-two {
+
+            right: 34px;
+            bottom: 33px;
+
+            border: 5px solid #d2d9d7;
+        }
+
+        /* Card hover */
+
+        .logo-icon:hover .card-one {
+
+            transform: translate(-5px,-5px);
+        }
+
+        .logo-icon:hover .card-two {
+
+            transform: translate(5px,5px);
+        }
+
+        /* ==============================
+           CONNECTION
+        ============================== */
+
+        .connection {
+
+            position: absolute;
+
+            width: 92px;
+            height: 25px;
+
+            left: 83px;
+            top: 112px;
+
+            border-radius: 30px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #61f7df,
+                    #ffffff,
+                    #b8c2c0
+                );
+
+            transform: rotate(-20deg);
+
+            filter:
+                drop-shadow(
+                    0 0 8px
+                    rgba(80,255,220,0.45)
+                );
+
+            z-index: 2;
+        }
+
+        /* ==============================
+           ARROWS
+        ============================== */
+
+        .arrow {
+
+            font-size: 48px;
+
+            font-weight: 700;
+
+            line-height: 1;
+
+            font-family: Arial, sans-serif;
+        }
+
+        .arrow-down {
+
+            color: #61f7df;
+
+            text-shadow:
+                0 0 10px rgba(97,247,223,0.7);
+        }
+
+        .arrow-up {
+
+            color: #eeeeee;
+
+            text-shadow:
+                0 0 10px rgba(255,255,255,0.25);
+        }
+
+        /* ==============================
+           BRAND AREA
+        ============================== */
+
+        .brand {
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: flex-start;
+        }
+
+        /* ==============================
+           BRAND NAME
+        ============================== */
+
+        .brand-name {
+
+            font-size: 90px;
+
+            font-weight: 900;
+
+            letter-spacing: -5px;
+
+            line-height: 1;
+
+            white-space: nowrap;
+        }
+
+        /* FLUX */
+
+        .flux {
+
+            color: #ffffff;
+
+            text-shadow:
+                0 3px 20px rgba(255,255,255,0.08);
+        }
+
+        /* DROP */
+
+        .drop {
+
+            background:
+                linear-gradient(
+                    120deg,
+                    #ffffff 0%,
+                    #ffffff 25%,
+                    #63ead6 100%
+                );
+
+            -webkit-background-clip: text;
+
+            -webkit-text-fill-color: transparent;
+
+            background-clip: text;
+        }
+
+        /* ==============================
+           TAGLINE
+        ============================== */
+
+        .tagline {
+
+            margin-top: 20px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 25px;
+
+            color: #aab5b3;
+
+            font-size: 18px;
+
+            font-weight: 500;
+
+            letter-spacing: 8px;
+        }
+
+        .tagline b {
+
+            color: #62ead5;
+
+            font-size: 20px;
+
+            letter-spacing: 0;
+
+            text-shadow:
+                0 0 8px rgba(98,234,213,0.7);
+        }
+
+        /* ==============================
+           DECORATIVE LINES
+        ============================== */
+
+        .line {
+
+            position: absolute;
+
+            height: 1px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(98,234,213,0.45),
+                    transparent
+                );
+
+            opacity: 0.6;
+        }
+
+        .line-one {
+
+            width: 400px;
+
+            top: 10%;
+
+            right: -150px;
+
+            transform: rotate(25deg);
+        }
+
+        .line-two {
+
+            width: 450px;
+
+            bottom: 5%;
+
+            left: -200px;
+
+            transform: rotate(25deg);
+        }
+
+        /* ==============================
+           ANIMATION
+        ============================== */
+
+        @keyframes logoAppear {
+
+            from {
+
+                opacity: 0;
+
+                transform:
+                    translateY(30px)
+                    scale(0.95);
+            }
+
+            to {
+
+                opacity: 1;
+
+                transform:
+                    translateY(0)
+                    scale(1);
+            }
+        }
+
+        /* ==============================
+           RESPONSIVE
+        ============================== */
+
+        @media (max-width: 1000px) {
+
+            .logo-container {
+
+                flex-direction: column;
+
+                gap: 40px;
+
+                padding: 40px;
+            }
+
+            .brand {
+
+                align-items: center;
+            }
+
+            .brand-name {
+
+                font-size: 65px;
+
+                letter-spacing: -4px;
+            }
+
+            .tagline {
+
+                font-size: 13px;
+
+                letter-spacing: 5px;
+            }
+        }
+
+        /* Mobile */
+
+        @media (max-width: 600px) {
+
+            .logo-container {
+
+                gap: 30px;
+
+                padding: 20px;
+            }
+
+            .logo-icon {
+
+                width: 190px;
+                height: 190px;
+
+                border-radius: 40px;
+            }
+
+            .transfer-card {
+
+                width: 75px;
+                height: 75px;
+
+                border-radius: 19px;
+            }
+
+            .card-one {
+
+                top: 30px;
+                left: 28px;
+            }
+
+            .card-two {
+
+                right: 25px;
+                bottom: 25px;
+            }
+
+            .connection {
+
+                width: 65px;
+
+                left: 61px;
+                top: 82px;
+            }
+
+            .arrow {
+
+                font-size: 34px;
+            }
+
+            .brand-name {
+
+                font-size: 42px;
+
+                letter-spacing: -2px;
+            }
+
+            .tagline {
+
+                gap: 10px;
+
+                font-size: 9px;
+
+                letter-spacing: 3px;
+            }
+
+            .tagline b {
+
+                font-size: 12px;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <!-- Decorative Lines -->
+
+    <div class="line line-one"></div>
+    <div class="line line-two"></div>
+
+
+    <!-- ==============================
+         FLUXDROP LOGO
+    ============================== -->
+
+    <div class="logo-container">
+
+        <!-- ICON -->
+
+        <div class="logo-icon">
+
+            <!-- First Transfer Card -->
+
+            <div class="transfer-card card-one">
+
+                <div class="arrow arrow-down">
+                    ↘
+                </div>
+
+            </div>
+
+
+            <!-- Connecting Element -->
+
+            <div class="connection"></div>
+
+
+            <!-- Second Transfer Card -->
+
+            <div class="transfer-card card-two">
+
+                <div class="arrow arrow-up">
+                    ↖
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- BRAND -->
+
+        <div class="brand">
+
+            <div class="brand-name">
+
+                <span class="flux">
+                    FLUX
+                </span>
+
+                <span class="drop">
+                    DROP
+                </span>
+
+            </div>
+
+
+            <!-- TAGLINE -->
+
+            <div class="tagline">
+
+                <span>SAVE</span>
+
+                <b>•</b>
+
+                <span>TRANSFER</span>
+
+                <b>•</b>
+
+                <span>GROW</span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

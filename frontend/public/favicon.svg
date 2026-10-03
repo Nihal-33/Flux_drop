@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 260" fill="none">
+  <defs>
+    <linearGradient id="fluxOuterBg" x1="15" y1="15" x2="245" y2="245" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0a1a1a"/>
+      <stop offset="1" stop-color="#020404"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="105" y2="105" gradientUnits="userSpaceOnUse">
+      <stop stop-color="rgba(255, 255, 255, 0.15)"/>
+      <stop offset="1" stop-color="rgba(0, 0, 0, 0.4)"/>
+    </linearGradient>
+    <linearGradient id="connectionGrad" x1="0" y1="0" x2="92" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#61f7df"/>
+      <stop offset="0.5" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#b8c2c0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Squircle Container -->
+  <rect x="4" y="4" width="252" height="252" rx="55" fill="url(#fluxOuterBg)" stroke="rgba(100, 255, 230, 0.85)" stroke-width="4"/>
+
+  <!-- Connecting Element (Pill) -->
+  <g transform="rotate(-20 129 124.5)">
+    <rect x="83" y="112" width="92" height="25" rx="12.5" fill="url(#connectionGrad)"/>
+  </g>
+
+  <!-- Card One (Top-Left) with Cyan Border -->
+  <rect x="38" y="43" width="105" height="105" rx="25" fill="url(#cardGrad)" stroke="#61f7df" stroke-width="6"/>
+  <text x="90.5" y="112" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" font-weight="700" fill="#61f7df">↘</text>
+
+  <!-- Card Two (Bottom-Right) with Silver Border -->
+  <rect x="117" y="122" width="105" height="105" rx="25" fill="url(#cardGrad)" stroke="#d2d9d7" stroke-width="6"/>
+  <text x="169.5" y="191" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" font-weight="700" fill="#eeeeee">↖</text>
+</svg>
