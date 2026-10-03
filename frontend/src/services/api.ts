@@ -50,17 +50,41 @@ class ApiClient {
       headers['Content-Type'] = 'application/json';
     }
 
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    try {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers,
+      });
+
+      if (!res.ok) {
+        // If proxy gave 502/504, try direct fallback
+        if ((res.status === 502 || res.status === 504) && API_BASE === '/api') {
+          return await this.fallbackDirectRequest<T>(endpoint, options, headers);
+        }
+        const errorData = await res.json().catch(() => ({ error: `Request failed with status ${res.status}` }));
+        throw new Error(errorData.error || errorData.message || `Request failed with status ${res.status}`);
+      }
+
+      return res.json();
+    } catch (err: any) {
+      if (API_BASE === '/api') {
+        return await this.fallbackDirectRequest<T>(endpoint, options, headers);
+      }
+      throw err;
+    }
+  }
+
+  private async fallbackDirectRequest<T>(endpoint: string, options: RequestInit, headers: Record<string, string>): Promise<T> {
+    const directUrl = `http://localhost:5000/api${endpoint}`;
+    const directRes = await fetch(directUrl, {
       ...options,
       headers,
     });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({ error: 'Network request failed' }));
-      throw new Error(errorData.error || errorData.message || `Request failed with status ${res.status}`);
+    if (!directRes.ok) {
+      const errorData = await directRes.json().catch(() => ({ error: `Request failed with status ${directRes.status}` }));
+      throw new Error(errorData.error || errorData.message || `Request failed with status ${directRes.status}`);
     }
-
-    return res.json();
+    return directRes.json();
   }
 
   // Auth
