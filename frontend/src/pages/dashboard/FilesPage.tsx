@@ -23,6 +23,7 @@ import {
   Code2,
   Plus,
   ChevronDown,
+  Loader2,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { FileRecord } from '../../types';
@@ -38,6 +39,7 @@ export const FilesPage: React.FC = () => {
   const [sort, setSort] = useState('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [loading, setLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const [editingFileId, setEditingFileId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -146,15 +148,12 @@ export const FilesPage: React.FC = () => {
 
   const handleDownload = async (file: FileRecord) => {
     try {
-      const res = await api.files.getSignedUrl(file.id);
-      const link = document.createElement('a');
-      link.href = res.signedUrl;
-      link.setAttribute('download', file.originalName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (e) {
-      alert('Could not generate secure download link.');
+      setDownloadingId(file.id);
+      await api.files.download(file.id, file.originalName);
+    } catch (e: any) {
+      alert(e?.message || 'Could not download file.');
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -616,10 +615,15 @@ export const FilesPage: React.FC = () => {
                     )}
                     <button
                       onClick={() => handleDownload(file)}
-                      title="Download signed copy"
-                      className="p-1.5 rounded-lg hover:bg-white/10 hover:text-cyan-400 transition"
+                      disabled={downloadingId === file.id}
+                      title="Download to device"
+                      className="p-1.5 rounded-lg hover:bg-white/10 hover:text-cyan-400 transition disabled:opacity-50"
                     >
-                      <Download className="w-3.5 h-3.5" />
+                      {downloadingId === file.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5" />
+                      )}
                     </button>
                     <button
                       onClick={() => {
@@ -685,10 +689,17 @@ export const FilesPage: React.FC = () => {
                     )}
                     <button
                       onClick={() => handleDownload(file)}
-                      className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-white flex items-center gap-1.5 transition"
+                      disabled={downloadingId === file.id}
+                      className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-white flex items-center gap-1.5 transition disabled:opacity-50"
                     >
-                      <Download className="w-3.5 h-3.5 text-cyan-400" />
-                      <span className="hidden sm:inline">Download</span>
+                      {downloadingId === file.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5 text-cyan-400" />
+                      )}
+                      <span className="hidden sm:inline">
+                        {downloadingId === file.id ? 'Downloading...' : 'Download'}
+                      </span>
                     </button>
                     <button
                       onClick={() => handleDelete(file.id, file.originalName)}

@@ -156,10 +156,9 @@ export const DashboardHome: React.FC = () => {
 
   const handleDownload = async (fileId: string) => {
     try {
-      const res = await api.files.getSignedUrl(fileId);
-      window.open(res.signedUrl, '_blank');
+      await api.files.download(fileId);
     } catch (e: any) {
-      alert(e.message || 'Download failed');
+      alert(e?.message || 'Download failed');
     }
   };
 

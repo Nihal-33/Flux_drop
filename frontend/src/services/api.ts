@@ -57,6 +57,20 @@ function categorizeFile(mimeType: string, filename: string): FileRecord['categor
   return 'other';
 }
 
+export function triggerBlobDownload(blob: Blob, filename: string) {
+  const blobUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(blobUrl);
+  }, 1500);
+}
+
 class ApiClient {
   private getToken(): string | null {
     return localStorage.getItem('fluxdrop_token');
@@ -455,13 +469,17 @@ class ApiClient {
 
     const { data: signedData } = await supabase.storage
       .from('fluxdrop-files')
-      .createSignedUrl(fileRow.storage_key, 3600);
+      .createSignedUrl(fileRow.storage_key, 3600, {
+        download: fileRow.original_name,
+      });
 
     let signedUrl = signedData?.signedUrl;
     if (!signedUrl) {
       const { data: pubData } = supabase.storage
         .from('fluxdrop-files')
-        .getPublicUrl(fileRow.storage_key);
+        .getPublicUrl(fileRow.storage_key, {
+          download: fileRow.original_name,
+        });
       signedUrl = pubData.publicUrl;
     }
 
@@ -1054,6 +1072,52 @@ class ApiClient {
         return await this.request<{ signedUrl: string; expiresAt: string; filename: string }>(`/files/${fileId}/signed-url`);
       } catch {
         return await this.supabaseGetSignedUrl(fileId);
+      }
+    },
+    download: async (fileId: string, fallbackFilename?: string) => {
+      // 1. If on cloud deploy, try direct Supabase storage blob download first
+      if (isCloudDeploy) {
+        try {
+          const { data: fileRow } = await supabase
+            .from('files')
+            .select('*')
+            .eq('id', fileId)
+            .maybeSingle();
+
+          if (fileRow) {
+            const filename = fallbackFilename || fileRow.original_name || 'download';
+            const { data: blob, error } = await supabase.storage
+              .from('fluxdrop-files')
+              .download(fileRow.storage_key);
+
+            if (blob && !error) {
+              triggerBlobDownload(blob, filename);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Direct Supabase blob download notice, trying signed url:', e);
+        }
+      }
+
+      // 2. Fall back to signed URL with fetch -> blob
+      const res = await api.files.getSignedUrl(fileId);
+      const filename = fallbackFilename || res.filename || 'download';
+
+      try {
+        const fetchRes = await fetch(res.signedUrl);
+        if (!fetchRes.ok) throw new Error(`HTTP ${fetchRes.status}`);
+        const blob = await fetchRes.blob();
+        triggerBlobDownload(blob, filename);
+      } catch {
+        // Fallback: programmatic anchor click
+        const a = document.createElement('a');
+        a.href = res.signedUrl;
+        a.setAttribute('download', filename);
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       }
     },
     rename: async (fileId: string, originalName: string) => {
