@@ -649,6 +649,36 @@ class ApiClient {
     return { message: 'File deleted successfully', id: fileId };
   }
 
+  private async supabaseDeleteAllFiles(): Promise<{ message: string; deletedCount: number }> {
+    const userId = await this.getCurrentUserId();
+    const { data: userFiles } = await supabase
+      .from('files')
+      .select('id, storage_key')
+      .eq('owner_id', userId);
+
+    const files = userFiles || [];
+    if (files.length === 0) {
+      return { message: 'Cloud vault is already empty.', deletedCount: 0 };
+    }
+
+    const storageKeys = files.map((f) => f.storage_key).filter(Boolean);
+    if (storageKeys.length > 0) {
+      try {
+        await supabase.storage.from('fluxdrop-files').remove(storageKeys);
+      } catch (err) {
+        console.warn('Supabase storage batch remove notice:', err);
+      }
+    }
+
+    await supabase.from('files').delete().eq('owner_id', userId);
+    await supabase.from('users').update({ storage_used: 0 }).eq('id', userId);
+
+    return {
+      message: `Successfully deleted all ${files.length} file(s) and freed your cloud storage.`,
+      deletedCount: files.length,
+    };
+  }
+
   private async supabaseRenameFile(fileId: string, originalName: string) {
     await supabase.from('files').update({
       original_name: originalName,
@@ -1331,6 +1361,96 @@ class ApiClient {
       } catch {
         return await this.supabaseDeleteFile(fileId);
       }
+    },
+    deleteAll: async () => {
+      if (isCloudDeploy) {
+        return await this.supabaseDeleteAllFiles();
+      }
+      try {
+        return await this.request<{ message: string; deletedCount: number }>('/files/all', {
+          method: 'DELETE',
+        });
+      } catch {
+        return await this.supabaseDeleteAllFiles();
+      }
+    },
+    downloadAllZip: async (
+      onProgress?: (progress: { loaded: number; total: number; currentFile: string; percent: number }) => void
+    ) => {
+      const JSZipModule = await import('jszip');
+      const JSZip = (JSZipModule as any).default || JSZipModule;
+      const zip = new JSZip();
+
+      const res = await api.files.list({ category: 'all' });
+      const files = res.files || [];
+      if (files.length === 0) {
+        throw new Error('Your cloud vault has no files to download.');
+      }
+
+      const total = files.length;
+      for (let i = 0; i < total; i++) {
+        const file = files[i];
+        onProgress?.({
+          loaded: i,
+          total,
+          currentFile: file.originalName,
+          percent: Math.round((i / total) * 75),
+        });
+
+        let blob: Blob | null = null;
+        if (isCloudDeploy) {
+          try {
+            const { data, error } = await supabase.storage
+              .from('fluxdrop-files')
+              .download(file.storageKey);
+            if (data && !error) {
+              blob = data;
+            }
+          } catch (e) {
+            console.warn('Direct storage download notice:', e);
+          }
+        }
+
+        if (!blob) {
+          try {
+            const signedRes = await api.files.getSignedUrl(file.id);
+            if (signedRes?.signedUrl) {
+              const fetchRes = await fetch(signedRes.signedUrl);
+              if (fetchRes.ok) {
+                blob = await fetchRes.blob();
+              }
+            }
+          } catch (e) {
+            console.warn('Signed URL blob notice:', e);
+          }
+        }
+
+        if (blob) {
+          zip.file(file.originalName, blob);
+        }
+      }
+
+      onProgress?.({
+        loaded: total,
+        total,
+        currentFile: 'Compressing ZIP package...',
+        percent: 85,
+      });
+
+      const zipBlob = await zip.generateAsync(
+        { type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } },
+        (meta: any) => {
+          onProgress?.({
+            loaded: total,
+            total,
+            currentFile: 'Compressing archive...',
+            percent: Math.round(75 + (meta.percent / 100) * 25),
+          });
+        }
+      );
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      triggerBlobDownload(zipBlob, `fluxdrop_all_files_${dateStr}.zip`);
     },
   };
 

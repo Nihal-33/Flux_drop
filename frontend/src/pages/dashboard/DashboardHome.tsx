@@ -30,6 +30,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { FileRecord, ActivityItem } from '../../types';
 import { getFilesFromDataTransfer } from '../../utils/fileUploadHelper';
+import { VaultBulkActions } from '../../components/files/VaultBulkActions';
 
 export const DashboardHome: React.FC = () => {
   const { user } = useAuth();
@@ -478,6 +479,13 @@ export const DashboardHome: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Dedicated Section: Vault Bulk Controls (Download Combined All Files as ZIP & Delete All) */}
+      <VaultBulkActions
+        filesCount={stats.totalFiles}
+        storageUsedBytes={user?.storageUsed || 0}
+        onRefresh={loadDashboardData}
+      />
 
       {/* Recent Files Table / List */}
       <div>

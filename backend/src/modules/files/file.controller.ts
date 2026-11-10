@@ -447,6 +447,37 @@ fileRouter.put('/:id/content', authMiddleware, (req: AuthenticatedRequest, res: 
   }
 });
 
+// Delete all files for current user
+fileRouter.delete('/all', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const userFiles = db.files.filter(f => f.ownerId === userId);
+
+    for (const file of userFiles) {
+      const fullPath = path.join(config.storageDir, file.storageKey);
+      if (fs.existsSync(fullPath)) {
+        try { fs.unlinkSync(fullPath); } catch {}
+      }
+      supabaseService.deleteFile(file.id).catch(() => {});
+    }
+
+    for (let i = db.files.length - 1; i >= 0; i--) {
+      if (db.files[i].ownerId === userId) {
+        db.files.splice(i, 1);
+      }
+    }
+
+    const user = db.users.find(u => u.id === userId);
+    if (user) user.storageUsed = 0;
+    db.schedulePersist();
+
+    ActivityService.log(userId, 'files:deleted_all', `Deleted all ${userFiles.length} files from cloud vault`, {}, req.ip);
+    return res.json({ message: 'All files deleted successfully.', deletedCount: userFiles.length });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to delete all files.' });
+  }
+});
+
 // Delete file
 fileRouter.delete('/:id', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;

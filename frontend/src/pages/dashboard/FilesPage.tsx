@@ -30,6 +30,7 @@ import { api } from '../../services/api';
 import { FileRecord } from '../../types';
 import { CodeEditorModal } from '../../components/code/CodeEditorModal';
 import { UploadProgressModal, UploadModalState } from '../../components/files/UploadProgressModal';
+import { VaultBulkActions } from '../../components/files/VaultBulkActions';
 import { getFilesFromDataTransfer } from '../../utils/fileUploadHelper';
 
 export const FilesPage: React.FC = () => {
@@ -566,6 +567,13 @@ export const FilesPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Dedicated Section: Vault Bulk Controls (Download Combined ZIP & Delete All) */}
+      <VaultBulkActions
+        filesCount={files.length}
+        storageUsedBytes={files.reduce((acc, f) => acc + (Number(f.size) || 0), 0)}
+        onRefresh={fetchFiles}
+      />
 
       {/* Files Display */}
       {files.length === 0 ? (
