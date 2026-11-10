@@ -2,6 +2,7 @@ import { Router, Response, Request } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { db, FileRecord } from '../../database/db.js';
 import { authMiddleware, AuthenticatedRequest } from '../../middleware/auth.middleware.js';
@@ -67,8 +68,29 @@ function categorizeFile(mimeType: string, filename: string): FileRecord['categor
   return 'other';
 }
 
+async function calculateLargeFileChecksum(filePath: string): Promise<string> {
+  return new Promise((resolve) => {
+    try {
+      const hash = crypto.createHash('sha256');
+      const stream = fs.createReadStream(filePath);
+      stream.on('data', chunk => hash.update(chunk));
+      stream.on('end', () => resolve(hash.digest('hex')));
+      stream.on('error', () => {
+        try {
+          const stat = fs.statSync(filePath);
+          resolve(crypto.createHash('sha256').update(`${stat.size}_${stat.mtimeMs}`).digest('hex'));
+        } catch {
+          resolve(uuidv4());
+        }
+      });
+    } catch {
+      resolve(uuidv4());
+    }
+  });
+}
+
 // Upload file(s)
-fileRouter.post('/upload', authMiddleware, upload.array('files', 10), (req: AuthenticatedRequest, res: Response) => {
+fileRouter.post('/upload', authMiddleware, upload.array('files', 2000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const files = req.files as Express.Multer.File[];
     const userId = req.user!.id;
@@ -81,9 +103,8 @@ fileRouter.post('/upload', authMiddleware, upload.array('files', 10), (req: Auth
     let totalBytesAdded = 0;
 
     for (const f of files) {
-      // Calculate file checksum
-      const fileBuffer = fs.readFileSync(f.path);
-      const checksum = calculateChecksum(fileBuffer);
+      // Calculate file checksum safely with streaming (prevents 2GB+ buffer crash)
+      const checksum = await calculateLargeFileChecksum(f.path);
       const category = categorizeFile(f.mimetype, f.originalname);
       const relativeStorageKey = path.relative(config.storageDir, f.path).replace(/\\/g, '/');
 

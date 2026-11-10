@@ -16,7 +16,7 @@ export const config = {
   jwtExpiresIn: '7d',
   pinLockoutMinutes: 15,
   maxPinAttempts: 5,
-  maxFileSize: 5 * 1024 * 1024 * 1024, // 5GB
+  maxFileSize: 20 * 1024 * 1024 * 1024, // 20GB (supports 7GB+ files and folders)
   pairingCodeExpiresMinutes: 10,
   supabaseUrl: process.env.SUPABASE_URL || 'https://jyuazhyurgmjshbhvulp.supabase.co',
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5dWF6aHl1cmdtanNoYmh2dWxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3NzQ3MjIsImV4cCI6MjEwNjM1MDcyMn0.Z03QCY9TVlA9HfkRiNB82OxO2GRfpUCIZnXhUprGheo',

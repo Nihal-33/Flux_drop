@@ -16,6 +16,26 @@ import { supabase } from './supabase';
 
 const API_BASE = '/api';
 
+export interface UploadProgressUpdate {
+  currentFileIndex: number;
+  totalFiles: number;
+  currentFileName: string;
+  currentFileSize: number;
+  loadedBytes: number;
+  totalBytes: number;
+  percent: number;
+  status: 'uploading' | 'completed' | 'error';
+  fileStatuses: Array<{
+    name: string;
+    size: number;
+    status: 'pending' | 'uploading' | 'success' | 'error';
+    error?: string;
+  }>;
+  errorMessage?: string;
+  successCount: number;
+  failedCount: number;
+}
+
 const isCloudDeploy =
   typeof window !== 'undefined' &&
   window.location.hostname !== 'localhost' &&
@@ -332,7 +352,10 @@ class ApiClient {
 
   // --- SUPABASE DIRECT FILE METHODS ---
 
-  private async supabaseUploadFiles(formData: FormData): Promise<{ message: string; files: FileRecord[] }> {
+  private async supabaseUploadFiles(
+    formData: FormData,
+    onProgress?: (update: UploadProgressUpdate) => void
+  ): Promise<{ message: string; files: FileRecord[]; failed?: Array<{ name: string; error: string }> }> {
     const filesToUpload: File[] = [];
     formData.forEach((value) => {
       if (value instanceof File) {
@@ -346,73 +369,206 @@ class ApiClient {
 
     const userId = await this.getCurrentUserId();
     const createdRecords: FileRecord[] = [];
+    const failedFiles: Array<{ name: string; error: string }> = [];
     let totalBytesAdded = 0;
+    const totalBytes = filesToUpload.reduce((acc, f) => acc + f.size, 0);
+    let uploadedBytes = 0;
 
-    for (const file of filesToUpload) {
+    const fileStatuses: Array<{
+      name: string;
+      size: number;
+      status: 'pending' | 'uploading' | 'success' | 'error';
+      error?: string;
+    }> = filesToUpload.map((f) => ({
+      name: f.name,
+      size: f.size,
+      status: 'pending',
+    }));
+
+    onProgress?.({
+      currentFileIndex: 1,
+      totalFiles: filesToUpload.length,
+      currentFileName: filesToUpload[0].name,
+      currentFileSize: filesToUpload[0].size,
+      loadedBytes: 0,
+      totalBytes,
+      percent: 0,
+      status: 'uploading',
+      fileStatuses,
+      successCount: 0,
+      failedCount: 0,
+    });
+
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const file = filesToUpload[i];
+      fileStatuses[i].status = 'uploading';
+
+      onProgress?.({
+        currentFileIndex: i + 1,
+        totalFiles: filesToUpload.length,
+        currentFileName: file.name,
+        currentFileSize: file.size,
+        loadedBytes: uploadedBytes,
+        totalBytes,
+        percent: Math.round((uploadedBytes / (totalBytes || 1)) * 100),
+        status: 'uploading',
+        fileStatuses,
+        successCount: createdRecords.length,
+        failedCount: failedFiles.length,
+      });
+
+      // Explicit Content-Type detection for archives and generic types
+      const ext = file.name.includes('.') ? ('.' + file.name.split('.').pop()!.toLowerCase()) : '';
+      let contentType = file.type || 'application/octet-stream';
+      if (!file.type || file.type === 'application/octet-stream' || file.type === 'application/x-zip-compressed') {
+        if (ext === '.zip') contentType = 'application/zip';
+        else if (ext === '.rar') contentType = 'application/vnd.rar';
+        else if (ext === '.7z') contentType = 'application/x-7z-compressed';
+        else if (ext === '.tar') contentType = 'application/x-tar';
+        else if (ext === '.gz') contentType = 'application/gzip';
+        else if (ext === '.bz2') contentType = 'application/x-bzip2';
+        else if (ext === '.iso') contentType = 'application/x-iso9660-image';
+      }
+
+      // Check single-file size for Cloud storage (Supabase Free Tier: 50MB per file)
+      const MAX_CLOUD_SINGLE_FILE = 50 * 1024 * 1024;
+      if (file.size > MAX_CLOUD_SINGLE_FILE) {
+        const errorMsg = `File is ${Math.round(file.size / (1024 * 1024))}MB. Cloud storage allows up to 50MB per file. For huge files or 7GB folders, use FluxDrop's Direct P2P Transfer in the Transfers tab for unlimited line-speed transfer!`;
+        fileStatuses[i].status = 'error';
+        fileStatuses[i].error = errorMsg;
+        failedFiles.push({ name: file.name, error: errorMsg });
+
+        onProgress?.({
+          currentFileIndex: i + 1,
+          totalFiles: filesToUpload.length,
+          currentFileName: file.name,
+          currentFileSize: file.size,
+          loadedBytes: uploadedBytes,
+          totalBytes,
+          percent: Math.round((uploadedBytes / (totalBytes || 1)) * 100),
+          status: 'uploading',
+          fileStatuses,
+          successCount: createdRecords.length,
+          failedCount: failedFiles.length,
+        });
+        continue;
+      }
+
       const fileId = crypto.randomUUID();
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const storageKey = `users/${userId}/${fileId}_${safeName}`;
 
-      const { error: uploadErr } = await supabase.storage
-        .from('fluxdrop-files')
-        .upload(storageKey, file, {
-          cacheControl: '3600',
-          upsert: true,
-          contentType: file.type || 'application/octet-stream',
+      try {
+        const { error: uploadErr } = await supabase.storage
+          .from('fluxdrop-files')
+          .upload(storageKey, file, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType,
+          });
+
+        if (uploadErr) {
+          throw new Error(uploadErr.message);
+        }
+
+        const category = categorizeFile(contentType, file.name);
+        const now = new Date().toISOString();
+        const checksum = await hashSha256(file.name + file.size + file.lastModified);
+
+        const fileRecord: FileRecord = {
+          id: fileId,
+          ownerId: userId,
+          storageKey,
+          originalName: file.name,
+          mimeType: contentType,
+          size: file.size,
+          checksum,
+          category,
+          createdAt: now,
+        };
+
+        const { error: dbErr } = await supabase.from('files').insert({
+          id: fileRecord.id,
+          owner_id: fileRecord.ownerId,
+          storage_key: fileRecord.storageKey,
+          original_name: fileRecord.originalName,
+          mime_type: fileRecord.mimeType,
+          size: fileRecord.size,
+          checksum: fileRecord.checksum,
+          category: fileRecord.category,
+          created_at: fileRecord.createdAt,
+          updated_at: now,
         });
 
-      if (uploadErr) {
-        throw new Error(`Upload to storage failed: ${uploadErr.message}`);
+        if (dbErr) {
+          console.warn('Database record insert notice:', dbErr.message);
+        }
+
+        createdRecords.push(fileRecord);
+        totalBytesAdded += file.size;
+        uploadedBytes += file.size;
+        fileStatuses[i].status = 'success';
+      } catch (err: any) {
+        const errMsg = err?.message || 'Storage upload failed';
+        fileStatuses[i].status = 'error';
+        fileStatuses[i].error = errMsg;
+        failedFiles.push({ name: file.name, error: errMsg });
       }
 
-      const category = categorizeFile(file.type || '', file.name);
-      const now = new Date().toISOString();
-      const checksum = await hashSha256(file.name + file.size + file.lastModified);
-
-      const fileRecord: FileRecord = {
-        id: fileId,
-        ownerId: userId,
-        storageKey,
-        originalName: file.name,
-        mimeType: file.type || 'application/octet-stream',
-        size: file.size,
-        checksum,
-        category,
-        createdAt: now,
-      };
-
-      const { error: dbErr } = await supabase.from('files').insert({
-        id: fileRecord.id,
-        owner_id: fileRecord.ownerId,
-        storage_key: fileRecord.storageKey,
-        original_name: fileRecord.originalName,
-        mime_type: fileRecord.mimeType,
-        size: fileRecord.size,
-        checksum: fileRecord.checksum,
-        category: fileRecord.category,
-        created_at: fileRecord.createdAt,
-        updated_at: now,
+      onProgress?.({
+        currentFileIndex: i + 1,
+        totalFiles: filesToUpload.length,
+        currentFileName: file.name,
+        currentFileSize: file.size,
+        loadedBytes: uploadedBytes,
+        totalBytes,
+        percent: Math.round(((i + 1) / filesToUpload.length) * 100),
+        status: i + 1 === filesToUpload.length ? 'completed' : 'uploading',
+        fileStatuses,
+        successCount: createdRecords.length,
+        failedCount: failedFiles.length,
       });
-
-      if (dbErr) {
-        console.warn('Database record insert notice:', dbErr.message);
-      }
-
-      createdRecords.push(fileRecord);
-      totalBytesAdded += file.size;
     }
 
     try {
-      const { data: userRow } = await supabase.from('users').select('storage_used').eq('id', userId).maybeSingle();
-      const current = Number(userRow?.storage_used) || 0;
-      await supabase.from('users').update({ storage_used: current + totalBytesAdded }).eq('id', userId);
+      if (totalBytesAdded > 0) {
+        const { data: userRow } = await supabase.from('users').select('storage_used').eq('id', userId).maybeSingle();
+        const current = Number(userRow?.storage_used) || 0;
+        await supabase.from('users').update({ storage_used: current + totalBytesAdded }).eq('id', userId);
+      }
     } catch {
       // ignore
+    }
+
+    const finalStatus = createdRecords.length > 0 ? 'completed' : 'error';
+    const finalErrorMsg =
+      failedFiles.length > 0
+        ? `${failedFiles.length} file(s) failed. ${failedFiles[0].error}`
+        : undefined;
+
+    onProgress?.({
+      currentFileIndex: filesToUpload.length,
+      totalFiles: filesToUpload.length,
+      currentFileName: 'Complete',
+      currentFileSize: 0,
+      loadedBytes: totalBytes,
+      totalBytes,
+      percent: 100,
+      status: finalStatus,
+      fileStatuses,
+      errorMessage: finalErrorMsg,
+      successCount: createdRecords.length,
+      failedCount: failedFiles.length,
+    });
+
+    if (createdRecords.length === 0 && failedFiles.length > 0) {
+      throw new Error(failedFiles[0].error || 'Upload failed.');
     }
 
     return {
       message: `${createdRecords.length} file(s) uploaded successfully`,
       files: createdRecords,
+      failed: failedFiles,
     };
   }
 
@@ -1051,9 +1207,9 @@ class ApiClient {
         return await this.supabaseListFiles(params);
       }
     },
-    upload: async (formData: FormData) => {
+    upload: async (formData: FormData, onProgress?: (u: UploadProgressUpdate) => void) => {
       if (isCloudDeploy) {
-        return await this.supabaseUploadFiles(formData);
+        return await this.supabaseUploadFiles(formData, onProgress);
       }
       try {
         return await this.request<{ message: string; files: FileRecord[] }>('/files/upload', {
@@ -1061,7 +1217,7 @@ class ApiClient {
           body: formData,
         });
       } catch {
-        return await this.supabaseUploadFiles(formData);
+        return await this.supabaseUploadFiles(formData, onProgress);
       }
     },
     getSignedUrl: async (fileId: string) => {

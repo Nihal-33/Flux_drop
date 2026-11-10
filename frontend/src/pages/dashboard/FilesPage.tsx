@@ -24,10 +24,13 @@ import {
   Plus,
   ChevronDown,
   Loader2,
+  FolderPlus,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { FileRecord } from '../../types';
 import { CodeEditorModal } from '../../components/code/CodeEditorModal';
+import { UploadProgressModal, UploadModalState } from '../../components/files/UploadProgressModal';
+import { getFilesFromDataTransfer } from '../../utils/fileUploadHelper';
 
 export const FilesPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -53,8 +56,28 @@ export const FilesPage: React.FC = () => {
   } | null>(null);
 
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadAnyInputRef = useRef<HTMLInputElement | null>(null);
+  const folderInputRef = useRef<HTMLInputElement | null>(null);
   const videoUploadInputRef = useRef<HTMLInputElement | null>(null);
   const audioUploadInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Drag and drop overlay state
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  // Upload Progress Modal state
+  const [uploadModalState, setUploadModalState] = useState<UploadModalState>({
+    isOpen: false,
+    status: 'uploading',
+    totalFiles: 0,
+    currentFileIndex: 0,
+    currentFileName: '',
+    loadedBytes: 0,
+    totalBytes: 0,
+    percent: 0,
+    fileStatuses: [],
+    successCount: 0,
+    failedCount: 0,
+  });
 
   // Custom sort dropdown state
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -108,18 +131,90 @@ export const FilesPage: React.FC = () => {
     fetchFiles();
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
+  const processUpload = async (fileList: File[]) => {
+    if (!fileList || fileList.length === 0) return;
+
+    const totalBytes = fileList.reduce((acc, f) => acc + f.size, 0);
+    const initialStatuses = fileList.map((f) => ({
+      name: f.name,
+      size: f.size,
+      status: 'pending' as const,
+    }));
+
+    setUploadModalState({
+      isOpen: true,
+      status: 'uploading',
+      totalFiles: fileList.length,
+      currentFileIndex: 1,
+      currentFileName: fileList[0].name,
+      loadedBytes: 0,
+      totalBytes,
+      percent: 0,
+      fileStatuses: initialStatuses,
+      successCount: 0,
+      failedCount: 0,
+    });
+
     const formData = new FormData();
-    Array.from(e.target.files).forEach((f) => formData.append('files', f));
+    fileList.forEach((file) => formData.append('files', file));
 
     try {
-      await api.files.upload(formData);
+      await api.files.upload(formData, (update) => {
+        setUploadModalState((prev) => ({
+          ...prev,
+          ...update,
+        }));
+      });
       await fetchFiles();
     } catch (err: any) {
-      alert(err.message || 'File upload failed');
-    } finally {
-      e.target.value = '';
+      console.error('Upload error:', err);
+      setUploadModalState((prev) => ({
+        ...prev,
+        status: 'error',
+        errorMessage: err.message || 'File upload failed. Please try again.',
+      }));
+    }
+  };
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const files = Array.from(e.target.files);
+    processUpload(files);
+    e.target.value = '';
+  };
+
+  const handleFolderUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const files = Array.from(e.target.files);
+    processUpload(files);
+    e.target.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    try {
+      const droppedFiles = await getFilesFromDataTransfer(e.dataTransfer);
+      if (droppedFiles.length > 0) {
+        processUpload(droppedFiles);
+      }
+    } catch (err) {
+      console.error('Error reading dropped files:', err);
     }
   };
 
@@ -217,7 +312,12 @@ export const FilesPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="max-w-6xl mx-auto space-y-6 relative"
+    >
       {/* Code Editor Modal */}
       <CodeEditorModal
         isOpen={showCodeEditor}
@@ -238,7 +338,7 @@ export const FilesPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Hidden File Inputs with targeted accept types */}
+        {/* Hidden File Inputs */}
         <input
           ref={uploadInputRef}
           type="file"
@@ -249,13 +349,28 @@ export const FilesPage: React.FC = () => {
               : category === 'documents'
               ? '.pdf,.doc,.docx,.txt,.rtf,.xls,.xlsx,.ppt,.pptx,.csv'
               : category === 'archives'
-              ? '.zip,.rar,.7z,.tar,.gz,.bz2'
+              ? '.zip,.rar,.7z,.tar,.gz,.bz2,.iso'
               : category === 'code'
               ? '.js,.ts,.tsx,.jsx,.py,.html,.css,.json,.sql,.sh,.c,.cpp,.rs,.go,.md'
               : undefined
           }
           className="hidden"
           onChange={handleUpload}
+        />
+        <input
+          ref={uploadAnyInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleUpload}
+        />
+        <input
+          ref={folderInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleFolderUpload}
+          {...({ webkitdirectory: '', directory: '' } as any)}
         />
         <input
           ref={videoUploadInputRef}
@@ -331,6 +446,28 @@ export const FilesPage: React.FC = () => {
                   ? 'Upload Code'
                   : 'Upload Files'}
               </span>
+            </button>
+          )}
+
+          {/* Upload Folder Button */}
+          <button
+            onClick={() => folderInputRef.current?.click()}
+            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-semibold flex items-center gap-2 transition cursor-pointer"
+            title="Upload an entire folder and all its contents"
+          >
+            <FolderPlus className="w-4 h-4 text-cyan-400" />
+            <span className="hidden sm:inline">Upload Folder</span>
+            <span className="sm:hidden">Folder</span>
+          </button>
+
+          {/* Quick Any File Upload (when filtered) */}
+          {category !== 'all' && (
+            <button
+              onClick={() => uploadAnyInputRef.current?.click()}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+              title="Upload any file type without filter"
+            >
+              <Plus className="w-4 h-4 text-[#61f7df]" />
             </button>
           )}
         </div>
@@ -549,6 +686,24 @@ export const FilesPage: React.FC = () => {
                 </span>
               </button>
             )}
+
+            <button
+              onClick={() => folderInputRef.current?.click()}
+              className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium text-xs inline-flex items-center gap-2 transition cursor-pointer"
+            >
+              <FolderPlus className="w-4 h-4 text-cyan-400" />
+              <span>Upload Folder</span>
+            </button>
+
+            {category !== 'all' && (
+              <button
+                onClick={() => uploadAnyInputRef.current?.click()}
+                className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 font-medium text-xs inline-flex items-center gap-2 transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-[#61f7df]" />
+                <span>Upload Any File</span>
+              </button>
+            )}
           </div>
         </div>
       ) : viewMode === 'grid' ? (
@@ -712,6 +867,26 @@ export const FilesPage: React.FC = () => {
               );
             })}
           </div>
+        </div>
+      )}
+      {/* Upload Progress Modal */}
+      <UploadProgressModal
+        state={uploadModalState}
+        onClose={() => setUploadModalState((prev) => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Drag & Drop Visual Overlay */}
+      {isDraggingOver && (
+        <div className="fixed inset-0 z-50 bg-[#030712]/90 backdrop-blur-md flex flex-col items-center justify-center border-4 border-dashed border-[#61f7df]/50 p-6 pointer-events-none transition-all">
+          <div className="w-24 h-24 rounded-3xl bg-[#61f7df]/15 border border-[#61f7df]/40 flex items-center justify-center text-[#61f7df] mb-5 shadow-[0_0_40px_rgba(97,247,223,0.35)] animate-bounce">
+            <UploadCloud className="w-12 h-12" />
+          </div>
+          <h3 className="text-2xl font-heading font-bold text-white mb-2">
+            Drop Files or Folders Here
+          </h3>
+          <p className="text-sm text-gray-300 max-w-md text-center">
+            Upload images, documents, archives, code files, or entire folders into your Cloud Vault.
+          </p>
         </div>
       )}
     </div>

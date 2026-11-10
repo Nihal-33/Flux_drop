@@ -24,14 +24,17 @@ import {
   Code2,
   Receipt,
   Wallet,
+  FolderPlus,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { FileRecord, ActivityItem } from '../../types';
+import { getFilesFromDataTransfer } from '../../utils/fileUploadHelper';
 
 export const DashboardHome: React.FC = () => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const folderInputRef = useRef<HTMLInputElement | null>(null);
 
   // States
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -85,11 +88,15 @@ export const DashboardHome: React.FC = () => {
     loadDashboardData();
   }, []);
 
-  const handleFileDrop = (e: React.DragEvent) => {
+  const handleFileDrop = async (e: React.DragEvent) => {
     e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFiles = Array.from(e.dataTransfer.files);
-      setSelectedFiles((prev) => [...prev, ...droppedFiles]);
+    try {
+      const droppedFiles = await getFilesFromDataTransfer(e.dataTransfer);
+      if (droppedFiles.length > 0) {
+        setSelectedFiles((prev) => [...prev, ...droppedFiles]);
+      }
+    } catch (err) {
+      console.error('Error reading dropped files:', err);
     }
   };
 
@@ -450,6 +457,14 @@ export const DashboardHome: React.FC = () => {
               multiple
               className="hidden"
               onChange={handleFileSelect}
+            />
+            <input
+              ref={folderInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileSelect}
+              {...({ webkitdirectory: '', directory: '' } as any)}
             />
             <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
               <UploadCloud className="w-8 h-8" />
