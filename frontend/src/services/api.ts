@@ -24,6 +24,9 @@ export interface UploadProgressUpdate {
   loadedBytes: number;
   totalBytes: number;
   percent: number;
+  speedBytesPerSec?: number;
+  etaSeconds?: number;
+  activeConcurrency?: number;
   status: 'uploading' | 'completed' | 'error';
   fileStatuses: Array<{
     name: string;
@@ -373,6 +376,7 @@ class ApiClient {
     let totalBytesAdded = 0;
     const totalBytes = filesToUpload.reduce((acc, f) => acc + f.size, 0);
     let uploadedBytes = 0;
+    const startTime = performance.now();
 
     const fileStatuses: Array<{
       name: string;
@@ -385,150 +389,147 @@ class ApiClient {
       status: 'pending',
     }));
 
-    onProgress?.({
-      currentFileIndex: 1,
-      totalFiles: filesToUpload.length,
-      currentFileName: filesToUpload[0].name,
-      currentFileSize: filesToUpload[0].size,
-      loadedBytes: 0,
-      totalBytes,
-      percent: 0,
-      status: 'uploading',
-      fileStatuses,
-      successCount: 0,
-      failedCount: 0,
-    });
+    // High throughput parallel concurrency pool: 6 simultaneous uploads
+    const CONCURRENCY = Math.min(6, filesToUpload.length);
 
-    for (let i = 0; i < filesToUpload.length; i++) {
-      const file = filesToUpload[i];
-      fileStatuses[i].status = 'uploading';
+    const emitProgress = (status: 'uploading' | 'completed' | 'error' = 'uploading', finalError?: string) => {
+      const elapsedSec = (performance.now() - startTime) / 1000;
+      const speedBytesPerSec = elapsedSec > 0.3 ? Math.round(uploadedBytes / elapsedSec) : 0;
+      const remainingBytes = Math.max(0, totalBytes - uploadedBytes);
+      const etaSeconds = speedBytesPerSec > 0 ? Math.round(remainingBytes / speedBytesPerSec) : 0;
+      const percent = totalBytes > 0 ? Math.min(100, Math.round((uploadedBytes / totalBytes) * 100)) : 100;
+
+      const processedCount = createdRecords.length + failedFiles.length;
+      const currentIdx = Math.min(processedCount, filesToUpload.length - 1);
 
       onProgress?.({
-        currentFileIndex: i + 1,
+        currentFileIndex: Math.min(processedCount + 1, filesToUpload.length),
         totalFiles: filesToUpload.length,
-        currentFileName: file.name,
-        currentFileSize: file.size,
+        currentFileName: filesToUpload[currentIdx]?.name || 'Uploading files...',
+        currentFileSize: filesToUpload[currentIdx]?.size || 0,
         loadedBytes: uploadedBytes,
         totalBytes,
-        percent: Math.round((uploadedBytes / (totalBytes || 1)) * 100),
-        status: 'uploading',
-        fileStatuses,
+        percent,
+        speedBytesPerSec,
+        etaSeconds,
+        activeConcurrency: CONCURRENCY,
+        status,
+        fileStatuses: [...fileStatuses],
+        errorMessage: finalError,
         successCount: createdRecords.length,
         failedCount: failedFiles.length,
       });
+    };
 
-      // Explicit Content-Type detection for archives and generic types
-      const ext = file.name.includes('.') ? ('.' + file.name.split('.').pop()!.toLowerCase()) : '';
-      let contentType = file.type || 'application/octet-stream';
-      if (!file.type || file.type === 'application/octet-stream' || file.type === 'application/x-zip-compressed') {
-        if (ext === '.zip') contentType = 'application/zip';
-        else if (ext === '.rar') contentType = 'application/vnd.rar';
-        else if (ext === '.7z') contentType = 'application/x-7z-compressed';
-        else if (ext === '.tar') contentType = 'application/x-tar';
-        else if (ext === '.gz') contentType = 'application/gzip';
-        else if (ext === '.bz2') contentType = 'application/x-bzip2';
-        else if (ext === '.iso') contentType = 'application/x-iso9660-image';
+    emitProgress('uploading');
+
+    let nextIndex = 0;
+    const pendingDbInserts: FileRecord[] = [];
+
+    const flushDbInserts = async () => {
+      if (pendingDbInserts.length === 0) return;
+      const toInsert = pendingDbInserts.splice(0, pendingDbInserts.length);
+      const rows = toInsert.map((rec) => ({
+        id: rec.id,
+        owner_id: rec.ownerId,
+        storage_key: rec.storageKey,
+        original_name: rec.originalName,
+        mime_type: rec.mimeType,
+        size: rec.size,
+        checksum: rec.checksum,
+        category: rec.category,
+        created_at: rec.createdAt,
+        updated_at: rec.createdAt,
+      }));
+
+      const { error: dbErr } = await supabase.from('files').insert(rows);
+      if (dbErr) {
+        console.warn('Batch DB insert notice:', dbErr.message);
       }
+    };
 
-      // Check single-file size for Cloud storage (Supabase Free Tier: 50MB per file)
-      const MAX_CLOUD_SINGLE_FILE = 50 * 1024 * 1024;
-      if (file.size > MAX_CLOUD_SINGLE_FILE) {
-        const errorMsg = `File is ${Math.round(file.size / (1024 * 1024))}MB. Cloud storage allows up to 50MB per file. For huge files or 7GB folders, use FluxDrop's Direct P2P Transfer in the Transfers tab for unlimited line-speed transfer!`;
-        fileStatuses[i].status = 'error';
-        fileStatuses[i].error = errorMsg;
-        failedFiles.push({ name: file.name, error: errorMsg });
+    const worker = async () => {
+      while (true) {
+        const i = nextIndex++;
+        if (i >= filesToUpload.length) break;
 
-        onProgress?.({
-          currentFileIndex: i + 1,
-          totalFiles: filesToUpload.length,
-          currentFileName: file.name,
-          currentFileSize: file.size,
-          loadedBytes: uploadedBytes,
-          totalBytes,
-          percent: Math.round((uploadedBytes / (totalBytes || 1)) * 100),
-          status: 'uploading',
-          fileStatuses,
-          successCount: createdRecords.length,
-          failedCount: failedFiles.length,
-        });
-        continue;
-      }
+        const file = filesToUpload[i];
+        fileStatuses[i].status = 'uploading';
+        emitProgress('uploading');
 
-      const fileId = crypto.randomUUID();
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const storageKey = `users/${userId}/${fileId}_${safeName}`;
-
-      try {
-        const { error: uploadErr } = await supabase.storage
-          .from('fluxdrop-files')
-          .upload(storageKey, file, {
-            cacheControl: '3600',
-            upsert: true,
-            contentType,
-          });
-
-        if (uploadErr) {
-          throw new Error(uploadErr.message);
+        // Explicit Content-Type detection for archives and generic types
+        const ext = file.name.includes('.') ? ('.' + file.name.split('.').pop()!.toLowerCase()) : '';
+        let contentType = file.type || 'application/octet-stream';
+        if (!file.type || file.type === 'application/octet-stream' || file.type === 'application/x-zip-compressed') {
+          if (ext === '.zip') contentType = 'application/zip';
+          else if (ext === '.rar') contentType = 'application/vnd.rar';
+          else if (ext === '.7z') contentType = 'application/x-7z-compressed';
+          else if (ext === '.tar') contentType = 'application/x-tar';
+          else if (ext === '.gz') contentType = 'application/gzip';
+          else if (ext === '.bz2') contentType = 'application/x-bzip2';
+          else if (ext === '.iso') contentType = 'application/x-iso9660-image';
         }
 
-        const category = categorizeFile(contentType, file.name);
-        const now = new Date().toISOString();
-        const checksum = await hashSha256(file.name + file.size + file.lastModified);
+        const fileId = crypto.randomUUID();
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const storageKey = `users/${userId}/${fileId}_${safeName}`;
 
-        const fileRecord: FileRecord = {
-          id: fileId,
-          ownerId: userId,
-          storageKey,
-          originalName: file.name,
-          mimeType: contentType,
-          size: file.size,
-          checksum,
-          category,
-          createdAt: now,
-        };
+        try {
+          const { error: uploadErr } = await supabase.storage
+            .from('fluxdrop-files')
+            .upload(storageKey, file, {
+              cacheControl: '3600',
+              upsert: true,
+              contentType,
+            });
 
-        const { error: dbErr } = await supabase.from('files').insert({
-          id: fileRecord.id,
-          owner_id: fileRecord.ownerId,
-          storage_key: fileRecord.storageKey,
-          original_name: fileRecord.originalName,
-          mime_type: fileRecord.mimeType,
-          size: fileRecord.size,
-          checksum: fileRecord.checksum,
-          category: fileRecord.category,
-          created_at: fileRecord.createdAt,
-          updated_at: now,
-        });
+          if (uploadErr) {
+            throw new Error(uploadErr.message);
+          }
 
-        if (dbErr) {
-          console.warn('Database record insert notice:', dbErr.message);
+          const category = categorizeFile(contentType, file.name);
+          const now = new Date().toISOString();
+          const checksum = await hashSha256(file.name + file.size + file.lastModified);
+
+          const fileRecord: FileRecord = {
+            id: fileId,
+            ownerId: userId,
+            storageKey,
+            originalName: file.name,
+            mimeType: contentType,
+            size: file.size,
+            checksum,
+            category,
+            createdAt: now,
+          };
+
+          createdRecords.push(fileRecord);
+          pendingDbInserts.push(fileRecord);
+          totalBytesAdded += file.size;
+          uploadedBytes += file.size;
+          fileStatuses[i].status = 'success';
+
+          // Flush in batches of 20 to keep DB operations snappy
+          if (pendingDbInserts.length >= 20) {
+            await flushDbInserts();
+          }
+        } catch (err: any) {
+          const errMsg = err?.message || 'Storage upload failed';
+          fileStatuses[i].status = 'error';
+          fileStatuses[i].error = errMsg;
+          failedFiles.push({ name: file.name, error: errMsg });
         }
 
-        createdRecords.push(fileRecord);
-        totalBytesAdded += file.size;
-        uploadedBytes += file.size;
-        fileStatuses[i].status = 'success';
-      } catch (err: any) {
-        const errMsg = err?.message || 'Storage upload failed';
-        fileStatuses[i].status = 'error';
-        fileStatuses[i].error = errMsg;
-        failedFiles.push({ name: file.name, error: errMsg });
+        emitProgress('uploading');
       }
+    };
 
-      onProgress?.({
-        currentFileIndex: i + 1,
-        totalFiles: filesToUpload.length,
-        currentFileName: file.name,
-        currentFileSize: file.size,
-        loadedBytes: uploadedBytes,
-        totalBytes,
-        percent: Math.round(((i + 1) / filesToUpload.length) * 100),
-        status: i + 1 === filesToUpload.length ? 'completed' : 'uploading',
-        fileStatuses,
-        successCount: createdRecords.length,
-        failedCount: failedFiles.length,
-      });
-    }
+    // Run parallel workers concurrently
+    const workers = Array.from({ length: CONCURRENCY }, () => worker());
+    await Promise.all(workers);
+
+    // Flush any remaining batched DB records
+    await flushDbInserts();
 
     try {
       if (totalBytesAdded > 0) {
@@ -546,20 +547,7 @@ class ApiClient {
         ? `${failedFiles.length} file(s) failed. ${failedFiles[0].error}`
         : undefined;
 
-    onProgress?.({
-      currentFileIndex: filesToUpload.length,
-      totalFiles: filesToUpload.length,
-      currentFileName: 'Complete',
-      currentFileSize: 0,
-      loadedBytes: totalBytes,
-      totalBytes,
-      percent: 100,
-      status: finalStatus,
-      fileStatuses,
-      errorMessage: finalErrorMsg,
-      successCount: createdRecords.length,
-      failedCount: failedFiles.length,
-    });
+    emitProgress(finalStatus, finalErrorMsg);
 
     if (createdRecords.length === 0 && failedFiles.length > 0) {
       throw new Error(failedFiles[0].error || 'Upload failed.');

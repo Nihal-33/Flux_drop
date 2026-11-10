@@ -14,6 +14,7 @@ import {
   FolderOpen,
   ArrowRight,
   ExternalLink,
+  Zap,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Link } from 'react-router-dom';
@@ -34,6 +35,9 @@ export interface UploadModalState {
   loadedBytes: number;
   totalBytes: number;
   percent: number;
+  speedBytesPerSec?: number;
+  etaSeconds?: number;
+  activeConcurrency?: number;
   fileStatuses: FileUploadStatusItem[];
   errorMessage?: string;
   successCount: number;
@@ -51,6 +55,19 @@ function formatBytes(bytes: number): string {
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+function formatSpeed(bytesPerSec?: number): string {
+  if (!bytesPerSec || bytesPerSec <= 0) return 'Optimizing...';
+  return `${formatBytes(bytesPerSec)}/s`;
+}
+
+function formatEta(seconds?: number): string {
+  if (!seconds || seconds <= 0) return '';
+  if (seconds < 60) return `~${seconds}s left`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `~${mins}m ${secs}s left`;
 }
 
 function getFileIcon(filename: string) {
@@ -165,7 +182,7 @@ export const UploadProgressModal: React.FC<UploadProgressModalProps> = ({ state,
           </div>
 
           {/* Main Progress Bar */}
-          <div className="space-y-2 mb-5">
+          <div className="space-y-2 mb-4">
             <div className="flex items-center justify-between text-xs font-mono">
               <span className="text-gray-300 font-medium">
                 {isCompleted ? 'Finished' : isError ? 'Progress' : state.currentFileName || 'Processing files...'}
@@ -187,6 +204,29 @@ export const UploadProgressModal: React.FC<UploadProgressModalProps> = ({ state,
               />
             </div>
           </div>
+
+          {/* Live Speed & Parallel Stream Metrics */}
+          {isUploading && (
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-white/[0.04] border border-white/10 text-xs mb-4">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1 font-mono text-[#61f7df] font-semibold">
+                  <Zap className="w-3.5 h-3.5 fill-[#61f7df]" />
+                  {formatSpeed(state.speedBytesPerSec)}
+                </span>
+                {state.etaSeconds !== undefined && state.etaSeconds > 0 && (
+                  <span className="text-gray-400 font-mono text-[11px]">
+                    • {formatEta(state.etaSeconds)}
+                  </span>
+                )}
+              </div>
+              {state.activeConcurrency && state.activeConcurrency > 1 && (
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span>⚡</span>
+                  <span>{state.activeConcurrency} Parallel Streams</span>
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Files List Items */}
           {state.fileStatuses && state.fileStatuses.length > 0 && (
@@ -247,23 +287,22 @@ export const UploadProgressModal: React.FC<UploadProgressModalProps> = ({ state,
           )}
 
           {/* Large File / 7GB Callout Notice */}
-          {state.failedCount > 0 && (
-            <div className="mb-5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs space-y-1.5">
-              <div className="flex items-center gap-2 font-semibold text-amber-400">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>Notice for Large Files or Folders (7GB+)</span>
+          {(state.totalBytes > 100 * 1024 * 1024 || state.failedCount > 0) && (
+            <div className="mb-4 p-3.5 rounded-2xl bg-cyan-500/[0.08] border border-cyan-500/20 text-xs space-y-1.5">
+              <div className="flex items-center gap-2 font-semibold text-cyan-300">
+                <Zap className="w-4 h-4 text-[#61f7df] shrink-0" />
+                <span>⚡ 100x Faster Transfer for Large Folders (7GB+)</span>
               </div>
-              <p className="text-[11px] leading-relaxed text-amber-200/90">
-                Cloud vault storage restricts individual file uploads to 50MB. For massive files or 7GB folders, use{' '}
-                <strong className="text-white">Direct P2P Drop</strong> in the Transfers tab for unlimited line-speed peer-to-peer transfer!
+              <p className="text-[11px] leading-relaxed text-gray-300">
+                Uploading a 7GB folder to cloud storage over public internet is bottlenecked by ISP upload speeds. For instant 100 MB/s transfer between nearby devices with zero wait time, switch to <strong className="text-white">Direct P2P Drop</strong>.
               </p>
               <Link
                 to="/transfers"
                 onClick={onClose}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#61f7df] hover:underline pt-0.5"
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#61f7df] hover:underline pt-0.5"
               >
-                <span>Go to Direct P2P Transfer</span>
-                <ArrowRight className="w-3 h-3" />
+                <span>Switch to Direct P2P Transfer</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           )}
@@ -289,3 +328,4 @@ export const UploadProgressModal: React.FC<UploadProgressModalProps> = ({ state,
     </AnimatePresence>
   );
 };
+

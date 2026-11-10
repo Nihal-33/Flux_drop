@@ -46,3 +46,4 @@ export async function getFilesFromDataTransfer(dataTransfer: DataTransfer): Prom
 
   return [];
 }
+

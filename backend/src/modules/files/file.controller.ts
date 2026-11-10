@@ -71,13 +71,34 @@ function categorizeFile(mimeType: string, filename: string): FileRecord['categor
 async function calculateLargeFileChecksum(filePath: string): Promise<string> {
   return new Promise((resolve) => {
     try {
+      const stat = fs.statSync(filePath);
+      // For large files (> 50MB), fast sample hash (first 1MB + last 1MB + size + mtime)
+      // to avoid disk read bottlenecks on multi-gigabyte files
+      if (stat.size > 50 * 1024 * 1024) {
+        const hash = crypto.createHash('sha256');
+        hash.update(`${stat.size}_${stat.mtimeMs}_`);
+        const fd = fs.openSync(filePath, 'r');
+        try {
+          const headBuf = Buffer.alloc(1024 * 1024);
+          const bytesReadHead = fs.readSync(fd, headBuf, 0, 1024 * 1024, 0);
+          hash.update(headBuf.subarray(0, bytesReadHead));
+
+          const tailBuf = Buffer.alloc(1024 * 1024);
+          const tailPos = Math.max(0, stat.size - 1024 * 1024);
+          const bytesReadTail = fs.readSync(fd, tailBuf, 0, 1024 * 1024, tailPos);
+          hash.update(tailBuf.subarray(0, bytesReadTail));
+          return resolve(hash.digest('hex'));
+        } finally {
+          try { fs.closeSync(fd); } catch {}
+        }
+      }
+
       const hash = crypto.createHash('sha256');
       const stream = fs.createReadStream(filePath);
       stream.on('data', chunk => hash.update(chunk));
       stream.on('end', () => resolve(hash.digest('hex')));
       stream.on('error', () => {
         try {
-          const stat = fs.statSync(filePath);
           resolve(crypto.createHash('sha256').update(`${stat.size}_${stat.mtimeMs}`).digest('hex'));
         } catch {
           resolve(uuidv4());
