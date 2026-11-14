@@ -15,6 +15,8 @@ import {
   ArrowRight,
   ExternalLink,
   Zap,
+  Minus,
+  Maximize2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Link } from 'react-router-dom';
@@ -28,6 +30,7 @@ export interface FileUploadStatusItem {
 
 export interface UploadModalState {
   isOpen: boolean;
+  isMinimized?: boolean;
   status: 'uploading' | 'completed' | 'error';
   totalFiles: number;
   currentFileIndex: number;
@@ -47,6 +50,8 @@ export interface UploadModalState {
 interface UploadProgressModalProps {
   state: UploadModalState;
   onClose: () => void;
+  onMinimize?: () => void;
+  onExpand?: () => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -90,7 +95,7 @@ function getFileIcon(filename: string) {
   return <FileText className="w-4 h-4 text-gray-400 shrink-0" />;
 }
 
-export const UploadProgressModal: React.FC<UploadProgressModalProps> = ({ state, onClose }) => {
+export const UploadProgressModal: React.FC<UploadProgressModalProps> = ({ state, onClose, onMinimize, onExpand }) => {
   const isCompleted = state.status === 'completed';
   const isError = state.status === 'error';
   const isUploading = state.status === 'uploading';
@@ -111,15 +116,110 @@ export const UploadProgressModal: React.FC<UploadProgressModalProps> = ({ state,
 
   if (!state.isOpen) return null;
 
+  // Render Minimized Floating Corner Widget
+  if (state.isMinimized) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 30, scale: 0.9 }}
+          className="fixed bottom-5 right-5 z-50 w-80 sm:w-96 rounded-2xl bg-[#090d16]/95 border border-[#61f7df]/40 p-3.5 shadow-2xl shadow-cyan-500/20 backdrop-blur-2xl"
+        >
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2.5 truncate cursor-pointer" onClick={onExpand}>
+              <div
+                className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                  isCompleted
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    : isError
+                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                    : 'bg-[#61f7df]/10 border-[#61f7df]/30 text-[#61f7df] animate-pulse'
+                }`}
+              >
+                {isCompleted ? (
+                  <CheckCircle2 className="w-4 h-4" />
+                ) : isError ? (
+                  <AlertCircle className="w-4 h-4" />
+                ) : (
+                  <UploadCloud className="w-4 h-4" />
+                )}
+              </div>
+              <div className="truncate">
+                <div className="text-xs font-bold text-white truncate">
+                  {isCompleted
+                    ? 'Upload Complete!'
+                    : isError
+                    ? 'Upload Issue'
+                    : `Uploading (${state.percent}%)`}
+                </div>
+                <div className="text-[10px] text-gray-400 font-mono truncate">
+                  {state.currentFileName || `${state.currentFileIndex} of ${state.totalFiles}`}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={onExpand}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+                title="Expand to Full View"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+              {!isUploading && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Mini progress bar */}
+          <div className="w-full h-1.5 bg-black/60 rounded-full overflow-hidden border border-white/5 mb-1.5">
+            <div
+              className={`h-full rounded-full transition-all duration-200 ${
+                isCompleted
+                  ? 'bg-emerald-400'
+                  : isError
+                  ? 'bg-rose-400'
+                  : 'bg-gradient-to-r from-[#61f7df] to-cyan-400'
+              }`}
+              style={{ width: `${state.percent}%` }}
+            />
+          </div>
+
+          {isUploading && (
+            <div className="flex items-center justify-between text-[10px] font-mono text-gray-400">
+              <span className="text-[#61f7df] flex items-center gap-1">
+                <Zap className="w-3 h-3 fill-[#61f7df]" />
+                {formatSpeed(state.speedBytesPerSec)}
+              </span>
+              <span>
+                {formatBytes(state.loadedBytes)} / {formatBytes(state.totalBytes)}
+              </span>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop */}
+        {/* Backdrop: Clicking backdrop minimizes to corner widget instead of destroying */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={isUploading ? undefined : onClose}
+          onClick={onMinimize || (isUploading ? undefined : onClose)}
           className="absolute inset-0 bg-black/75 backdrop-blur-md"
         />
 
@@ -171,14 +271,26 @@ export const UploadProgressModal: React.FC<UploadProgressModalProps> = ({ state,
               </div>
             </div>
 
-            {!isUploading && (
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
-                onClick={onClose}
+                type="button"
+                onClick={onMinimize}
                 className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+                title="Minimize to floating widget"
               >
-                <X className="w-4 h-4" />
+                <Minus className="w-4 h-4" />
               </button>
-            )}
+              {!isUploading && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Main Progress Bar */}

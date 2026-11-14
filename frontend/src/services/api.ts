@@ -12,7 +12,7 @@ import {
   UdharSummary,
 } from '../types';
 
-import { supabase } from './supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from './supabase';
 
 const API_BASE = '/api';
 
@@ -94,6 +94,61 @@ export function triggerBlobDownload(blob: Blob, filename: string) {
   }, 1500);
 }
 
+function uploadToSupabaseWithProgress(
+  url: string,
+  storageKey: string,
+  file: File,
+  contentType: string,
+  anonKey: string,
+  token?: string | null,
+  onProgress?: (loadedBytes: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const endpoint = `${url}/storage/v1/object/fluxdrop-files/${storageKey}`;
+    xhr.open('POST', endpoint);
+
+    xhr.setRequestHeader('apikey', anonKey);
+    xhr.setRequestHeader('Authorization', `Bearer ${token || anonKey}`);
+    xhr.setRequestHeader('x-upsert', 'true');
+
+    const body = new FormData();
+    body.append('cacheControl', '3600');
+    body.append('', file);
+
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(e.loaded);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        try {
+          const err = JSON.parse(xhr.responseText);
+          reject(new Error(err.message || err.error || `Upload failed with status ${xhr.status}`));
+        } catch {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Network error during file upload. Please check connection.'));
+    };
+
+    xhr.ontimeout = () => {
+      reject(new Error('Upload timed out.'));
+    };
+
+    xhr.send(body);
+  });
+}
+
 class ApiClient {
   private getToken(): string | null {
     return localStorage.getItem('fluxdrop_token');
@@ -128,6 +183,10 @@ class ApiClient {
 
     if (!(options.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
+    }
+
+    if (isCloudDeploy) {
+      throw new Error(`Cloud mode: endpoint ${endpoint} is handled directly by Supabase services.`);
     }
 
     try {
@@ -474,18 +533,35 @@ class ApiClient {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const storageKey = `users/${userId}/${fileId}_${safeName}`;
 
+        let fileLoadedBytes = 0;
         try {
-          const { error: uploadErr } = await supabase.storage
-            .from('fluxdrop-files')
-            .upload(storageKey, file, {
-              cacheControl: '3600',
-              upsert: true,
-              contentType,
-            });
-
-          if (uploadErr) {
-            throw new Error(uploadErr.message);
-          }
+          const token = this.getToken();
+          await uploadToSupabaseWithProgress(
+            supabaseUrl,
+            storageKey,
+            file,
+            contentType,
+            supabaseAnonKey,
+            token,
+            (loaded) => {
+              const delta = loaded - fileLoadedBytes;
+              fileLoadedBytes = loaded;
+              uploadedBytes += delta;
+              emitProgress('uploading');
+            }
+          ).catch(async (xhrErr) => {
+            // Fallback to client upload if XHR fails
+            const { error: uploadErr } = await supabase.storage
+              .from('fluxdrop-files')
+              .upload(storageKey, file, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType,
+              });
+            if (uploadErr) throw new Error(uploadErr.message || xhrErr.message);
+            uploadedBytes += (file.size - fileLoadedBytes);
+            fileLoadedBytes = file.size;
+          });
 
           const category = categorizeFile(contentType, file.name);
           const now = new Date().toISOString();
@@ -506,7 +582,6 @@ class ApiClient {
           createdRecords.push(fileRecord);
           pendingDbInserts.push(fileRecord);
           totalBytesAdded += file.size;
-          uploadedBytes += file.size;
           fileStatuses[i].status = 'success';
 
           // Flush in batches of 20 to keep DB operations snappy
@@ -565,7 +640,17 @@ class ApiClient {
     let query = supabase.from('files').select('*').eq('owner_id', userId);
 
     if (params?.category && params.category !== 'all') {
-      query = query.eq('category', params.category);
+      if (params.category === 'images' || params.category === 'image') {
+        query = query.in('category', ['images', 'image']);
+      } else if (params.category === 'videos' || params.category === 'video') {
+        query = query.in('category', ['videos', 'video']);
+      } else if (params.category === 'documents' || params.category === 'document') {
+        query = query.in('category', ['documents', 'document']);
+      } else if (params.category === 'archives' || params.category === 'archive') {
+        query = query.in('category', ['archives', 'archive']);
+      } else {
+        query = query.eq('category', params.category);
+      }
     }
 
     if (params?.search && params.search.trim()) {
@@ -590,6 +675,16 @@ class ApiClient {
       return { files: [] };
     }
 
+    const normalizeCategory = (cat: string): FileRecord['category'] => {
+      if (cat === 'image' || cat === 'images') return 'images';
+      if (cat === 'video' || cat === 'videos') return 'videos';
+      if (cat === 'document' || cat === 'documents') return 'documents';
+      if (cat === 'archive' || cat === 'archives') return 'archives';
+      if (cat === 'code') return 'code';
+      if (cat === 'audio') return 'audio';
+      return 'other';
+    };
+
     const files: FileRecord[] = (data || []).map((row) => ({
       id: row.id,
       ownerId: row.owner_id,
@@ -598,7 +693,7 @@ class ApiClient {
       mimeType: row.mime_type || 'application/octet-stream',
       size: Number(row.size) || 0,
       checksum: row.checksum || '',
-      category: row.category,
+      category: normalizeCategory(row.category),
       createdAt: row.created_at,
     }));
 
@@ -900,12 +995,15 @@ class ApiClient {
       }
     },
     logout: async () => {
-      try {
-        return await this.request<{ message: string }>('/auth/logout', { method: 'POST' });
-      } catch {
-        await supabase.auth.signOut();
-        return { message: 'Logged out successfully' };
+      if (!isCloudDeploy) {
+        try {
+          await this.request<{ message: string }>('/auth/logout', { method: 'POST' });
+        } catch {
+          // ignore
+        }
       }
+      await supabase.auth.signOut();
+      return { message: 'Logged out successfully' };
     },
   };
 
@@ -1275,23 +1373,34 @@ class ApiClient {
       }
 
       // 2. Fall back to signed URL with fetch -> blob
-      const res = await api.files.getSignedUrl(fileId);
-      const filename = fallbackFilename || res.filename || 'download';
-
       try {
-        const fetchRes = await fetch(res.signedUrl);
-        if (!fetchRes.ok) throw new Error(`HTTP ${fetchRes.status}`);
-        const blob = await fetchRes.blob();
-        triggerBlobDownload(blob, filename);
-      } catch {
-        // Fallback: programmatic anchor click
+        const res = await api.files.getSignedUrl(fileId);
+        const filename = fallbackFilename || res.filename || 'download';
+
+        if (res.signedUrl) {
+          const fetchRes = await fetch(res.signedUrl);
+          if (fetchRes.ok) {
+            const blob = await fetchRes.blob();
+            triggerBlobDownload(blob, filename);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Signed URL fetch blob notice:', e);
+      }
+
+      // 3. Last fallback: anchor click with download attribute (not _blank)
+      try {
+        const res = await api.files.getSignedUrl(fileId);
+        const filename = fallbackFilename || res.filename || 'download';
         const a = document.createElement('a');
         a.href = res.signedUrl;
-        a.setAttribute('download', filename);
-        a.target = '_blank';
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        setTimeout(() => document.body.removeChild(a), 1000);
+      } catch (err: any) {
+        throw new Error(err.message || 'Could not download file. Please check connection.');
       }
     },
     rename: async (fileId: string, originalName: string) => {

@@ -27,6 +27,7 @@ import {
   FolderPlus,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useUpload } from '../../context/UploadContext';
 import { api } from '../../services/api';
 import { FileRecord, ActivityItem } from '../../types';
 import { getFilesFromDataTransfer } from '../../utils/fileUploadHelper';
@@ -34,6 +35,7 @@ import { VaultBulkActions } from '../../components/files/VaultBulkActions';
 
 export const DashboardHome: React.FC = () => {
   const { user } = useAuth();
+  const { uploadFiles, onUploadComplete } = useUpload();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -89,6 +91,13 @@ export const DashboardHome: React.FC = () => {
     loadDashboardData();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = onUploadComplete(() => {
+      loadDashboardData();
+    });
+    return unsubscribe;
+  }, [onUploadComplete]);
+
   const handleFileDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     try {
@@ -123,36 +132,11 @@ export const DashboardHome: React.FC = () => {
   const totalSelectedSize = selectedFiles.reduce((acc, f) => acc + f.size, 0);
 
   // Instant Cloud Upload
-  const handleUploadFiles = async () => {
+  const handleUploadFiles = () => {
     if (selectedFiles.length === 0) return;
-
-    setIsUploading(true);
-    setUploadProgress(15);
-
-    try {
-      const formData = new FormData();
-      selectedFiles.forEach((file) => formData.append('files', file));
-
-      // Simulate smooth progress ramp
-      const progressTimer = setInterval(() => {
-        setUploadProgress((p) => (p < 85 ? p + 15 : p));
-      }, 200);
-
-      const res = await api.files.upload(formData);
-      clearInterval(progressTimer);
-      setUploadProgress(100);
-
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadSuccess(true);
-        setSelectedFiles([]);
-        loadDashboardData();
-      }, 500);
-    } catch (err: any) {
-      console.error('File upload failed:', err);
-      setIsUploading(false);
-      alert(err.message || 'File upload failed. Please try again.');
-    }
+    const filesToUpload = [...selectedFiles];
+    setSelectedFiles([]);
+    uploadFiles(filesToUpload);
   };
 
   const resetUpload = () => {

@@ -29,7 +29,7 @@ import {
 import { api } from '../../services/api';
 import { FileRecord } from '../../types';
 import { CodeEditorModal } from '../../components/code/CodeEditorModal';
-import { UploadProgressModal, UploadModalState } from '../../components/files/UploadProgressModal';
+import { useUpload } from '../../context/UploadContext';
 import { VaultBulkActions } from '../../components/files/VaultBulkActions';
 import { getFilesFromDataTransfer } from '../../utils/fileUploadHelper';
 
@@ -65,20 +65,8 @@ export const FilesPage: React.FC = () => {
   // Drag and drop overlay state
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-  // Upload Progress Modal state
-  const [uploadModalState, setUploadModalState] = useState<UploadModalState>({
-    isOpen: false,
-    status: 'uploading',
-    totalFiles: 0,
-    currentFileIndex: 0,
-    currentFileName: '',
-    loadedBytes: 0,
-    totalBytes: 0,
-    percent: 0,
-    fileStatuses: [],
-    successCount: 0,
-    failedCount: 0,
-  });
+  // Global resilient upload context
+  const { uploadFiles, onUploadComplete } = useUpload();
 
   // Custom sort dropdown state
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -118,6 +106,13 @@ export const FilesPage: React.FC = () => {
     fetchFiles();
   }, [category, sort]);
 
+  useEffect(() => {
+    const unsubscribe = onUploadComplete(() => {
+      fetchFiles();
+    });
+    return unsubscribe;
+  }, [onUploadComplete]);
+
   // Check if opened with write-code trigger
   useEffect(() => {
     if (searchParams.get('action') === 'write-code') {
@@ -132,49 +127,9 @@ export const FilesPage: React.FC = () => {
     fetchFiles();
   };
 
-  const processUpload = async (fileList: File[]) => {
+  const processUpload = (fileList: File[]) => {
     if (!fileList || fileList.length === 0) return;
-
-    const totalBytes = fileList.reduce((acc, f) => acc + f.size, 0);
-    const initialStatuses = fileList.map((f) => ({
-      name: f.name,
-      size: f.size,
-      status: 'pending' as const,
-    }));
-
-    setUploadModalState({
-      isOpen: true,
-      status: 'uploading',
-      totalFiles: fileList.length,
-      currentFileIndex: 1,
-      currentFileName: fileList[0].name,
-      loadedBytes: 0,
-      totalBytes,
-      percent: 0,
-      fileStatuses: initialStatuses,
-      successCount: 0,
-      failedCount: 0,
-    });
-
-    const formData = new FormData();
-    fileList.forEach((file) => formData.append('files', file));
-
-    try {
-      await api.files.upload(formData, (update) => {
-        setUploadModalState((prev) => ({
-          ...prev,
-          ...update,
-        }));
-      });
-      await fetchFiles();
-    } catch (err: any) {
-      console.error('Upload error:', err);
-      setUploadModalState((prev) => ({
-        ...prev,
-        status: 'error',
-        errorMessage: err.message || 'File upload failed. Please try again.',
-      }));
-    }
+    uploadFiles(fileList);
   };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -877,12 +832,6 @@ export const FilesPage: React.FC = () => {
           </div>
         </div>
       )}
-      {/* Upload Progress Modal */}
-      <UploadProgressModal
-        state={uploadModalState}
-        onClose={() => setUploadModalState((prev) => ({ ...prev, isOpen: false }))}
-      />
-
       {/* Drag & Drop Visual Overlay */}
       {isDraggingOver && (
         <div className="fixed inset-0 z-50 bg-[#030712]/90 backdrop-blur-md flex flex-col items-center justify-center border-4 border-dashed border-[#61f7df]/50 p-6 pointer-events-none transition-all">
