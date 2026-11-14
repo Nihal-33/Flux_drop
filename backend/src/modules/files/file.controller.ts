@@ -452,10 +452,11 @@ fileRouter.delete('/all', authMiddleware, async (req: AuthenticatedRequest, res:
   try {
     const userId = req.user!.id;
     const userFiles = db.files.filter(f => f.ownerId === userId);
+    const resolvedStorageDir = path.resolve(config.storageDir);
 
     for (const file of userFiles) {
-      const fullPath = path.join(config.storageDir, file.storageKey);
-      if (fs.existsSync(fullPath)) {
+      const fullPath = path.resolve(config.storageDir, file.storageKey);
+      if (fullPath.startsWith(resolvedStorageDir) && fs.existsSync(fullPath)) {
         try { fs.unlinkSync(fullPath); } catch {}
       }
       supabaseService.deleteFile(file.id).catch(() => {});
@@ -490,9 +491,10 @@ fileRouter.delete('/:id', authMiddleware, (req: AuthenticatedRequest, res: Respo
 
   const [file] = db.files.splice(index, 1);
 
-  // Remove physical file
-  const fullPath = path.join(config.storageDir, file.storageKey);
-  if (fs.existsSync(fullPath)) {
+  // Remove physical file with traversal protection
+  const resolvedStorageDir = path.resolve(config.storageDir);
+  const fullPath = path.resolve(config.storageDir, file.storageKey);
+  if (fullPath.startsWith(resolvedStorageDir) && fs.existsSync(fullPath)) {
     try {
       fs.unlinkSync(fullPath);
     } catch (e) {

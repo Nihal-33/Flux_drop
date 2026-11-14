@@ -182,7 +182,7 @@ class ApiClient {
     }
     const { data: authUser } = await supabase.auth.getUser();
     if (authUser?.user?.id) return authUser.user.id;
-    return '06f66e57-39e2-46ef-9fea-9636328fa265';
+    throw new Error('Not authenticated. Please log in to continue.');
   }
 
   private async supabaseRegister(data: {
@@ -1387,7 +1387,26 @@ class ApiClient {
         throw new Error('Your cloud vault has no files to download.');
       }
 
+      // Track duplicate file names to prevent ZIP file collisions
+      const usedNames = new Set<string>();
+      const getUniqueName = (originalName: string): string => {
+        let name = originalName;
+        let counter = 1;
+        const dotIndex = originalName.lastIndexOf('.');
+        const base = dotIndex !== -1 ? originalName.slice(0, dotIndex) : originalName;
+        const ext = dotIndex !== -1 ? originalName.slice(dotIndex) : '';
+
+        while (usedNames.has(name.toLowerCase())) {
+          name = `${base} (${counter})${ext}`;
+          counter++;
+        }
+        usedNames.add(name.toLowerCase());
+        return name;
+      };
+
       const total = files.length;
+      let bundledCount = 0;
+
       for (let i = 0; i < total; i++) {
         const file = files[i];
         onProgress?.({
@@ -1426,8 +1445,14 @@ class ApiClient {
         }
 
         if (blob) {
-          zip.file(file.originalName, blob);
+          const uniqueZipName = getUniqueName(file.originalName);
+          zip.file(uniqueZipName, blob);
+          bundledCount++;
         }
+      }
+
+      if (bundledCount === 0) {
+        throw new Error('Failed to retrieve file contents for the archive. Please try again.');
       }
 
       onProgress?.({

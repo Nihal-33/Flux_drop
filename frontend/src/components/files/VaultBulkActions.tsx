@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Loader2,
-  Sparkles,
   X,
   ShieldAlert,
   Package,
@@ -322,3 +321,4 @@ export const VaultBulkActions: React.FC<VaultBulkActionsProps> = ({
     </section>
   );
 };
+
